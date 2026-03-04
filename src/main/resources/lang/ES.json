@@ -5,5 +5,8 @@
     "FATAL_ERROR": "Fallo interno del sistema al hacer loggin.",
     "USER_CREATED": "Usuario creado correctamente",
     "REGISTER_ERROR": "Fallo al registrar usuario",
-    "USER_EXISTS_ERROR": "Error, el usuario ya existe"
+    "USER_EXISTS_ERROR": "Error, el usuario ya existe",
+    "ERROR_INVALID_DATA": "Error, datos invalidos",
+    "ERROR_LOGIN": "Error, datos invalidos",
+    "USER_CREATED_SUCCESS": "Usuario creado correctamente"
 }
