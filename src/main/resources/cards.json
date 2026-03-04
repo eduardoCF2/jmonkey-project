@@ -1,0 +1,282 @@
+[
+    {
+        "id": 1,
+        "name": "As de bastos",
+        "suit": "BASTOS",
+        "type": "PALO",
+        "value": 1
+    },
+    {
+        "id": 2,
+        "name": "Dos de bastos",
+        "suit": "BASTOS",
+        "type": "PALO",
+        "value": 2
+    },
+    {
+        "id": 3,
+        "name": "Tres de bastos",
+        "suit": "BASTOS",
+        "type": "PALO",
+        "value": 3
+    },
+    {
+        "id": 4,
+        "name": "Cuatro de bastos",
+        "suit": "BASTOS",
+        "type": "PALO",
+        "value": 4
+    },
+    {
+        "id": 5,
+        "name": "Cinco de bastos",
+        "suit": "BASTOS",
+        "type": "PALO",
+        "value": 5
+    },
+    {
+        "id": 6,
+        "name": "Seis de bastos",
+        "suit": "BASTOS",
+        "type": "PALO",
+        "value": 6
+    },
+    {
+        "id": 7,
+        "name": "Diez de bastos",
+        "suit": "BASTOS",
+        "type": "TRIUNFO",
+        "value": 10
+    },
+    {
+        "id": 8,
+        "name": "Once de bastos",
+        "suit": "BASTOS",
+        "type": "TRIUNFO",
+        "value": 11
+    },
+    {
+        "id": 9,
+        "name": "Doce de bastos",
+        "suit": "BASTOS",
+        "type": "TRIUNFO",
+        "value": 12
+    },
+    {
+        "id": 10,
+        "name": "As de copas",
+        "suit": "COPAS",
+        "type": "PALO",
+        "value": 1
+    },
+    {
+        "id": 11,
+        "name": "Dos de copas",
+        "suit": "COPAS",
+        "type": "PALO",
+        "value": 2
+    },
+    {
+        "id": 12,
+        "name": "Tres de copas",
+        "suit": "COPAS",
+        "type": "PALO",
+        "value": 3
+    },
+    {
+        "id": 13,
+        "name": "Cuatro de copas",
+        "suit": "COPAS",
+        "type": "PALO",
+        "value": 4
+    },
+    {
+        "id": 14,
+        "name": "Cinco de copas",
+        "suit": "COPAS",
+        "type": "PALO",
+        "value": 5
+    },
+    {
+        "id": 15,
+        "name": "Seis de copas",
+        "suit": "COPAS",
+        "type": "PALO",
+        "value": 6
+    },
+    {
+        "id": 16,
+        "name": "Diez de copas",
+        "suit": "COPAS",
+        "type": "TRIUNFO",
+        "value": 10
+    },
+    {
+        "id": 17,
+        "name": "Once de copas",
+        "suit": "COPAS",
+        "type": "TRIUNFO",
+        "value": 11
+    },
+    {
+        "id": 18,
+        "name": "Doce de copas",
+        "suit": "COPAS",
+        "type": "TRIUNFO",
+        "value": 12
+    },
+    {
+        "id": 19,
+        "name": "As de espadas",
+        "suit": "ESPADAS",
+        "type": "PALO",
+        "value": 1
+    },
+    {
+        "id": 20,
+        "name": "Dos de espadas",
+        "suit": "ESPADAS",
+        "type": "PALO",
+        "value": 2
+    },
+    {
+        "id": 21,
+        "name": "Tres de espadas",
+        "suit": "ESPADAS",
+        "type": "PALO",
+        "value": 3
+    },
+    {
+        "id": 22,
+        "name": "Cuatro de espadas",
+        "suit": "ESPADAS",
+        "type": "PALO",
+        "value": 4
+    },
+    {
+        "id": 23,
+        "name": "Cinco de espadas",
+        "suit": "ESPADAS",
+        "type": "PALO",
+        "value": 5
+    },
+    {
+        "id": 24,
+        "name": "Seis de espadas",
+        "suit": "ESPADAS",
+        "type": "PALO",
+        "value": 6
+    },
+    {
+        "id": 25,
+        "name": "Diez de espadas",
+        "suit": "ESPADAS",
+        "type": "TRIUNFO",
+        "value": 10
+    },
+    {
+        "id": 26,
+        "name": "Once de espadas",
+        "suit": "ESPADAS",
+        "type": "TRIUNFO",
+        "value": 11
+    },
+    {
+        "id": 27,
+        "name": "Doce de espadas",
+        "suit": "ESPADAS",
+        "type": "TRIUNFO",
+        "value": 12
+    },
+    {
+        "id": 28,
+        "name": "As de oros",
+        "suit": "OROS",
+        "type": "PALO",
+        "value": 1
+    },
+    {
+        "id": 29,
+        "name": "Dos de oros",
+        "suit": "OROS",
+        "type": "PALO",
+        "value": 2
+    },
+    {
+        "id": 30,
+        "name": "Tres de oros",
+        "suit": "OROS",
+        "type": "PALO",
+        "value": 3
+    },
+    {
+        "id": 31,
+        "name": "Cuatro de oros",
+        "suit": "OROS",
+        "type": "PALO",
+        "value": 4
+    },
+    {
+        "id": 32,
+        "name": "Cinco de oros",
+        "suit": "OROS",
+        "type": "PALO",
+        "value": 5
+    },
+    {
+        "id": 33,
+        "name": "Seis de oros",
+        "suit": "OROS",
+        "type": "PALO",
+        "value": 6
+    },
+    {
+        "id": 34,
+        "name": "Diez de oros",
+        "suit": "OROS",
+        "type": "TRIUNFO",
+        "value": 10
+    },
+    {
+        "id": 35,
+        "name": "Once de oros",
+        "suit": "OROS",
+        "type": "TRIUNFO",
+        "value": 11
+    },
+    {
+        "id": 36,
+        "name": "Doce de oros",
+        "suit": "OROS",
+        "type": "TRIUNFO",
+        "value": 12
+    },
+    {
+        "id": 37,
+        "name": "JOKER DE BASTOS",
+        "suit": "BASTOS",
+        "type": "JOKER",
+        "value": 0
+    },
+    {
+        "id": 38,
+        "name": "JOKER DE OROS",
+        "suit": "OROS",
+        "type": "JOKER",
+        "value": 0
+    },
+    {
+        "id": 39,
+        "name": "JOKER DE ESPADAS",
+        "suit": "ESPADAS",
+        "type": "JOKER",
+        "value": 0
+    },
+    {
+        "id": 40,
+        "name": "JOKER DE COPAS",
+        "suit": "COPAS",
+        "type": "JOKER",
+        "value": 0
+    }
+]

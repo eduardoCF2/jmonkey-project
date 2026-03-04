@@ -14,8 +14,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <jme3.version>3.6.1-stable</jme3.version>
   </properties>
 
@@ -25,6 +25,35 @@
       <groupId>org.jmonkeyengine</groupId>
       <artifactId>jme3-core</artifactId>
       <version>${jme3.version}</version>
+    </dependency>
+    <!-- Dependencias para la conexion a base de datos -->
+    <dependency>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-core</artifactId>
+        <version>6.4.4.Final</version> 
+    </dependency>
+    <!-- Javalin para crear la api rest -->
+    <dependency>
+        <groupId>io.javalin</groupId>
+        <artifactId>javalin</artifactId>
+        <version>6.1.3</version>
+    </dependency>
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.2</version>
+    </dependency>
+    <!-- Jackson -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.16.1</version>
+    </dependency>
+    <!-- Libreria para la autenticacion (JSON WEB TOKEN) -->
+    <dependency>
+      <groupId>com.auth0</groupId>
+      <artifactId>java-jwt</artifactId>
+      <version>4.4.0</version>
     </dependency>
 
     <!-- Soporte para entorno de escritorio (Windows, Linux, macOS) -->

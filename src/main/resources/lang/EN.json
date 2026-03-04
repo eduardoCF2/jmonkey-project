@@ -1,0 +1,5 @@
+{
+    "CORRECT_LOGIN": "Login successful. Welcome to the barracs.",
+    "ERROR_LOGIN": "Invalid password.",
+    "USER_NOT_FOUND": "That soldier is not in our records."
+}
