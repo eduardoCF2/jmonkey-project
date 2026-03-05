@@ -3,6 +3,7 @@ package com.TFG1.service;
 import com.TFG1.exception.GameException;
 import com.TFG1.model.User;
 import com.TFG1.repository.UserRepository;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class AuthService {
 
@@ -17,13 +18,10 @@ public class AuthService {
             throw new GameException("USER_NOT_FOUND");
         }
 
-        // Comprobar contraseña por texto plano OJO QUE HAY QUE USAR OTRA COSA PARA
-        // ENCRIPTAR
-        if (!user.getPassword().equals(password)) {
+        // Encriptar contraseña
+        if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new GameException("ERROR_LOGIN");
         }
-
-        // Si es correcto el flujo devuelve el usuario con el TOKEN
         return user;
     }
 
@@ -34,15 +32,12 @@ public class AuthService {
             throw new GameException("USER_EXISTS_ERROR");
         }
 
-        // Si no existe, creamos la instancia del modelo User
-        // El constructor de User debería asignar las monedas iniciales (ej: 100)
-        User newUser = new User(username, password);
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-        // Guardar en postgres
+        User newUser = new User(username, hashedPassword);
+
         userRepository.save(newUser);
 
-        // Devolvemos el usuario recién creado (incluyendo su nueva ID de base de
-        // datos)
         return newUser;
     }
 }

@@ -26,6 +26,12 @@
       <artifactId>jme3-core</artifactId>
       <version>${jme3.version}</version>
     </dependency>
+    <!-- Dependencia para la encriptacion de contraseñas -->
+    <dependency>
+      <groupId>org.mindrot</groupId>
+      <artifactId>jbcrypt</artifactId>
+      <version>0.4</version>
+    </dependency>
     <!-- Dependencias para la conexion a base de datos -->
     <dependency>
         <groupId>org.hibernate.orm</groupId>
@@ -55,6 +61,12 @@
       <artifactId>java-jwt</artifactId>
       <version>4.4.0</version>
     </dependency>
+    <!-- Loggin -->
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>2.0.10</version>
+    </dependency> 
     <!-- Apache POI para leer Excel -->
     <dependency>
       <groupId>org.apache.poi</groupId>
