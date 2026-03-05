@@ -13,7 +13,7 @@ public class CardRegistry {
     private final Map<Integer, Card> cards = new HashMap<>();
 
     public CardRegistry() {
-
+        initCards();
     }
 
     private void initCards() {

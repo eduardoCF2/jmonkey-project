@@ -32,6 +32,10 @@ public class Player {
         }
     }
 
+    public void eliminateFull() {
+        cup.clear();
+    }
+
     public boolean isEliminated() {
         return cup.isEmpty();
     }

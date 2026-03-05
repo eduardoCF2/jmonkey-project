@@ -22,6 +22,15 @@ public class UserRepository {
         }
     }
 
+    public User findById(int id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.get(User.class, id);
+        } catch (Exception e) {
+            System.err.println("Error al buscar usuario por ID: " + e.getMessage());
+            return null;
+        }
+    }
+
     // Evitamos duplicados
 
     public boolean existsByUsername(String username) {
@@ -48,13 +57,12 @@ public class UserRepository {
             if (transaction != null)
                 transaction.rollback();
             System.err.println("Error al guardar usuario: " + e.getMessage());
-            throw e; // Relanzamos para que el Service sepa que algo falló
+            throw e; // Relanzamos para que el Service sepa que algo fallo
         }
     }
 
-    /**
-     * Actualiza los datos de un usuario (ej: cuando gana monedas).
-     */
+    // ACtualizar datos del usuario
+
     public void update(User user) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {

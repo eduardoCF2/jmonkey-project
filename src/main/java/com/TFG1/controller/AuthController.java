@@ -60,7 +60,8 @@ public class AuthController {
                 RegisterRequest req = ctx.bodyAsClass(RegisterRequest.class);
 
                 // Validacion básica de nulos
-                if (req.username() == null || req.password() == null || req.username().isBlank()) {
+                if (req.username() == null || req.password() == null || req.username().isBlank()
+                        || req.password().trim().isEmpty()) {
                     ctx.status(400);
                     throw new GameException("ERROR_INVALID_DATA");
                 }
@@ -92,7 +93,7 @@ public class AuthController {
     // Lee la cabecera HTTP para saber el idioma del jugador
     private static String getLanguage(Context ctx) {
         String lang = ctx.header("Accept-Language");
-        return (lang != null && lang.length() >= 2) ? lang.substring(0, 2).toLowerCase() : "ES";
+        return (lang != null && lang.length() >= 2) ? lang.substring(0, 2).toUpperCase() : "ES";
     }
 
     // Se encarga de traducir la GameException y enviarla

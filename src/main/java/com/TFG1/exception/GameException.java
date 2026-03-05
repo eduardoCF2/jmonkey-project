@@ -1,18 +1,22 @@
 package com.TFG1.exception;
 
+import com.TFG1.service.I18nService;
+
 public class GameException extends RuntimeException {
 
-    private final String errorKey; // Aqui se guarda todo lo que este en lang de errores (mas o menos)xd
+    private final String errorKey;
 
     public GameException(String errorKey) {
-        super(errorKey);
+        super(I18nService.get("ES", errorKey));
+        this.errorKey = errorKey;
+    }
+
+    public GameException(String errorKey, Throwable cause) {
+        super(I18nService.get("ES", errorKey), cause);
         this.errorKey = errorKey;
     }
 
     public String getErrorKey() {
         return errorKey;
     }
-
-    // Esta clase se tiene que referir a la que este en javalin para manejar las
-    // excepciones
 }
