@@ -70,7 +70,7 @@ public class AuthController {
                 User newUser = authService.register(req.username(), req.password());
 
                 String lang = getLanguage(ctx);
-                String successMsg = I18nService.get(lang, "USER_CREATED_SUCCESS"); // Añade esto a tu JSON
+                String successMsg = I18nService.get(lang, "USER_CREATED_SUCCESS");
 
                 ctx.status(201).json("{ \"message\": \"" + successMsg + "\", \"userId\": " + newUser.getId() + " }");
 
