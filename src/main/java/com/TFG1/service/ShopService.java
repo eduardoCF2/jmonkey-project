@@ -8,6 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.TFG1.model.User;
+import com.TFG1.model.UserCard;
+import com.TFG1.repository.CardRepository;
+import com.TFG1.repository.UserRepository;
+
 public class ShopService {
 
     private final CardRegistry cardRegistry;
@@ -72,7 +77,7 @@ public class ShopService {
         }
     }
     //Método para comprar una carta
-     public boolean buyCard(User user, int cardId, UserRepository userRepo, CardRepository cardRepo) {
+    public boolean buyCard(User user, int cardId, UserRepository userRepo, CardRepository cardRepo) {
         
         // 1. Validar que la carta que pide esté realmente a la venta HOY
         boolean isOnSale = dailyShop.stream().anyMatch(c -> c.id() == cardId);
@@ -80,15 +85,16 @@ public class ShopService {
             System.out.println("La carta " + cardId + " no está a la venta hoy.");
             return false;
         }
-        // 2. Definir un precio (para empezar podemos decir que todas cuestan 20 monedas,
-        // o podrías hacerlo dinámico según la rareza de la carta)
-        int price = 20;
+        // 2. Definir un precio dinámico
+        Card cardToBuy = dailyShop.stream().filter(c -> c.id() == cardId).findFirst().get();
+        int price = calculatePrice(cardToBuy);
+        
         // 3. Comprobar si tiene pasta suficiente
         if (user.getCoins() >= price) {
             
             // 4. Cobrar la carta
             user.setCoins(user.getCoins() - price);
-            userRepo.update(user); // ¡Ojo! Tendrás que crear este método update en UserRepository
+            userRepo.update(user); 
             // 5. Entregar la carta guardándola en la tabla UserCard
             UserCard newInventoryCard = new UserCard(user, cardId);
             cardRepo.save(newInventoryCard);
@@ -99,4 +105,38 @@ public class ShopService {
             System.out.println("Error: " + user.getUsername() + " no tiene suficientes monedas.");
             return false;
         }
+    }
+
+    // Método que calcula el precio de una carta en base a su rareza y su número
+    private int calculatePrice(Card card) {
+        int basePrice = 0;
+        
+        // 1. Primero el precio base por RAREZA (Palo)
+        switch (card.suit()) {
+            case BASTOS:
+                basePrice = 10;
+                break;
+            case COPAS:
+                basePrice = 25;
+                break;
+            case ESPADAS:
+                basePrice = 50;
+                break;
+            case OROS:
+                basePrice = 100;
+                break;
+        }
+
+        // 2. Sumamos un plus por el VALOR / POTENCIA de la carta (número del A al Joker)
+        // Imagino que value() es por ejemplo 1 (As), 12 (Rey)... o más para el comodín.
+        // Por cada punto de valor, la carta es un 5% más cara.
+        // Si tienes Jokers con un valor fijo muy alto (ej. 15), costarán más.
+        
+        double multiplier = 1.0 + (card.value() * 0.05); // 1 = 1.05x, 10 = 1.5x, 15 = 1.75x
+        
+        int finalPrice = (int) (basePrice * multiplier);
+        
+        return finalPrice;
+    }
+
 }
