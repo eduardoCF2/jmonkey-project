@@ -17,31 +17,29 @@ public class App extends SimpleApplication {
 
         System.out.println("--- INICIANDO SISTEMAS DEL TFG ---");
 
-        // 1. INICIAR BASE DE DATOS (Hibernate)
-        // Esto crea las tablas en Postgres si no existen
         try {
             HibernateUtil.getSessionFactory();
-            System.out.println("Base de Datos conectada.");
+            System.out.println("Base de Datos conectada");
         } catch (Exception e) {
-            System.err.println("ERROR: No se pudo conectar a PostgreSQL. ¿Está pgAdmin encendido?");
+            System.err.println("ERROR: No se pudo conectar a PostgreSQL");
             e.printStackTrace();
             return; // Si no hay base de datos, no arrancamos nada
         }
 
-        // 2. LEVANTAR API REST (Javalin)
+        // Levantar el api
         Javalin api = Javalin.create(config -> {
-            config.showJavalinBanner = false; // Limpia la consola
+            config.showJavalinBanner = false;
         }).start(8080);
 
-        // 3. REGISTRAR RUTAS (Endpoints)
+        // Endpoints
         AuthController.registerRoutes(api);
         ShopController.registerRoutes(api);
-        System.out.println("✅ API REST lista en http://localhost:8080");
+        System.out.println("API REST lista en http://localhost:8080");
 
-        // 4. INICIAR MOTOR GRÁFICO (jMonkeyEngine)
+        // Motor grafico
         App app = new App();
         AppSettings settings = new AppSettings(true);
-        settings.setTitle("Civil War TFG - Cliente/Servidor");
+        settings.setTitle("GAMEGAME");
         settings.setResolution(1024, 768);
         settings.setVSync(true);
 
@@ -55,7 +53,7 @@ public class App extends SimpleApplication {
         // Configuramos la escena 3D inicial
         viewPort.setBackgroundColor(ColorRGBA.DarkGray);
 
-        // El cubo azul de prueba
+        // El cubo azul de prueba pa ver que funciona el jmonkey
         Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("CuboPrueba", b);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");

@@ -14,9 +14,9 @@ public class ConsoleGame {
         GameManager gm = new GameManager();
 
         // Creamos algunos jugadores de prueba
-        Player p1 = new Player(1, "Alice", 5);
-        Player p2 = new Player(2, "Bob", 5);
-        Player p3 = new Player(3, "Charlie", 5);
+        Player p1 = new Player(1, "Edu", 5);
+        Player p2 = new Player(2, "Sanz", 5);
+        Player p3 = new Player(3, "Soler", 5);
 
         gm.addPlayer(p1);
         gm.addPlayer(p2);
@@ -40,7 +40,7 @@ public class ConsoleGame {
             // Mostrar la apuesta actual si existe
             Bid currentBid = gm.getCurrentBid();
             if (currentBid == null) {
-                System.out.println("Mesa vacia. Eres el primero en apostar.");
+                System.out.println("Mesa vacia. Eres el primero en apostar");
             } else {
                 System.out.println("Apuesta actual en la mesa: " + currentBid.quantity() + " dados con el valor de "
                         + currentBid.value());
@@ -56,9 +56,9 @@ public class ConsoleGame {
             System.out.println("]");
 
             System.out.println("Que quieres hacer?");
-            System.out.println(" -> Escribe 'bid <cantidad> <valor>' para apostar (ej: bid 2 4).");
+            System.out.println(" -> Escribe 'bid <cantidad> <valor>' para apostar (ej: bid 2 4)");
             if (currentBid != null) {
-                System.out.println(" -> Escribe 'doubt' para dudar de la apuesta actual.");
+                System.out.println(" -> Escribe 'doubt' para dudar de la apuesta actual");
             }
 
             System.out.print("> ");
@@ -71,7 +71,7 @@ public class ConsoleGame {
                     int val = Integer.parseInt(parts[2]);
 
                     if (val < 1 || val > 6) {
-                        System.out.println("[!] El valor del dado debe ser entre 1 y 6.");
+                        System.out.println("ERROR: El valor del dado debe ser entre 1 y 6");
                         continue;
                     }
 
@@ -80,17 +80,17 @@ public class ConsoleGame {
 
                     if (!success) {
                         System.out.println(
-                                "[!] Jugada invalida. La apuesta debe incrementar la cantidad de dados o el valor facial de la apuesta actual.");
+                                "ERROR: Jugada invalida. La apuesta debe incrementar la cantidad de dados o el valor facial de la apuesta actual.");
                     } else {
                         System.out.println(
                                 "[+] " + currentPlayer.getName() + " aposto " + qty + " dados con valor " + val);
                     }
                 } catch (Exception e) {
-                    System.out.println("[!] Formato incorrecto. Usa: bid <cantidad> <valor>");
+                    System.out.println("ERROR: Formato incorrecto. Usa: bid <cantidad> <valor>");
                 }
             } else if (input.equals("doubt")) {
                 if (currentBid == null) {
-                    System.out.println("[!] No puedes dudar porque no hay ninguna apuesta en la mesa.");
+                    System.out.println("ERROR: No puedes dudar porque no hay ninguna apuesta en la mesa");
                     continue;
                 }
 
@@ -134,7 +134,7 @@ public class ConsoleGame {
                 System.out.println("Presiona ENTER para empezar la siguiente ronda...");
                 scanner.nextLine();
             } else {
-                System.out.println("[!] Comando no reconocido.");
+                System.out.println("ERROR: Comando no reconocido");
             }
         }
 
