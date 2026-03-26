@@ -1,6 +1,13 @@
 package com.TFG1.core.cards;
 
-public record Card(int id, String name, Suit suit, CardType type, int value) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record Card(
+    @JsonProperty("id") int id, 
+    @JsonProperty("name") String name, 
+    @JsonProperty("suit") Suit suit, 
+    @JsonProperty("type") CardType type, 
+    @JsonProperty("value") int value) {
 
     // id -> identificar cartas
     // name -> nombre de la carta

@@ -2,8 +2,10 @@ package com.TFG1.controller;
 
 import com.TFG1.exception.GameException;
 import com.TFG1.model.User;
+import com.TFG1.repository.CardRepository;
 import com.TFG1.repository.UserRepository;
 import com.TFG1.service.I18nService;
+import com.TFG1.service.ShopService;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -26,7 +28,20 @@ public class ShopController {
     public record BuyRequest(int userId, String itemId) {
     }
 
-    public static void registerRoutes(Javalin api) {
+    public record BuyCardRequest(int userId, int cardId) {
+    }
+
+    private final ShopService shopService;
+    private final UserRepository userRepository;
+    private final CardRepository cardRepository;
+
+    public ShopController(ShopService shopService, UserRepository userRepository, CardRepository cardRepository) {
+        this.shopService = shopService;
+        this.userRepository = userRepository;
+        this.cardRepository = cardRepository;
+    }
+
+    public void registerRoutes(Javalin api) {
 
         // Endpoint para ver los artículos
         api.get("/api/shop/items", ctx -> {
@@ -54,12 +69,11 @@ public class ShopController {
                     throw new GameException("ERROR_ITEM_NOT_FOUND");
                 }
 
-                UserRepository userRepo = new UserRepository();
                 // OJO: Por ahora no tenemos `findById` en UserRepository,
                 // idealmente deberiamos añadirlo para buscar por ID en vez de nombre.
                 // Lo simulamos temporalmente con una nueva excepcion si el repositorio no
                 // encuentra al usuario.
-                User buyer = userRepo.findById(req.userId());
+                User buyer = userRepository.findById(req.userId());
 
                 if (buyer == null) {
                     ctx.status(404);
@@ -74,7 +88,7 @@ public class ShopController {
 
                 // 3. Efectuar compra
                 buyer.setCoins(buyer.getCoins() - itemToBuy.price());
-                userRepo.update(buyer);
+                userRepository.update(buyer);
 
                 String lang = getLanguage(ctx);
                 String successMsg = I18nService.get(lang, "PURCHASE_SUCCESS_MSG");
@@ -82,6 +96,44 @@ public class ShopController {
                 ctx.status(200)
                         .json("{ \"message\": \"" + successMsg + "\", \"newBalance\": " + buyer.getCoins() + " }");
 
+            } catch (GameException e) {
+                handleGameException(e, ctx);
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).json("{ \"error\": \"INTERNAL_SERVER_ERROR\" }");
+            }
+        });
+
+        // Endpoints de cartas
+        api.get("/api/shop/cards", ctx -> {
+            ctx.status(200).json(shopService.getDailyShop());
+        });
+
+        api.post("/api/shop/buy-card", ctx -> {
+            try {
+                BuyCardRequest req = ctx.bodyAsClass(BuyCardRequest.class);
+
+                if (req.cardId() <= 0 || req.userId() <= 0) {
+                    ctx.status(400);
+                    throw new GameException("ERROR_INVALID_DATA");
+                }
+
+                User buyer = userRepository.findById(req.userId());
+
+                if (buyer == null) {
+                    ctx.status(404);
+                    throw new GameException("USER_NOT_FOUND");
+                }
+
+                boolean success = shopService.buyCard(buyer, req.cardId(), userRepository, cardRepository);
+                if (success) {
+                    String lang = getLanguage(ctx);
+                    String successMsg = I18nService.get(lang, "PURCHASE_SUCCESS_MSG");
+                    ctx.status(200).json("{ \"message\": \"" + successMsg + "\", \"newBalance\": " + buyer.getCoins() + " }");
+                } else {
+                    ctx.status(400);
+                    throw new GameException("ERROR_INSUFFICIENT_FUNDS"); // Maybe make a new exception key for this later
+                }
             } catch (GameException e) {
                 handleGameException(e, ctx);
             } catch (Exception e) {

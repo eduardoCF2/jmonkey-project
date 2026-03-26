@@ -9,6 +9,10 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
+import com.TFG1.core.cards.CardRegistry;
+import com.TFG1.repository.CardRepository;
+import com.TFG1.repository.UserRepository;
+import com.TFG1.service.ShopService;
 import io.javalin.Javalin;
 
 public class App extends SimpleApplication {
@@ -18,23 +22,31 @@ public class App extends SimpleApplication {
         System.out.println("--- INICIANDO SISTEMAS DEL TFG ---");
 
         try {
-            HibernateUtil.getSessionFactory();
-            System.out.println("Base de Datos conectada");
+            // HibernateUtil.getSessionFactory();
+            // System.out.println("Base de Datos conectada");
+            System.out.println("Base de Datos temporalmente DESACTIVADA para poder probar la tienda.");
         } catch (Exception e) {
             System.err.println("ERROR: No se pudo conectar a PostgreSQL");
             e.printStackTrace();
-            return; // Si no hay base de datos, no arrancamos nada
+            // return; // Si no hay base de datos, no arrancamos nada
         }
 
         // Levantar el api
         Javalin api = Javalin.create(config -> {
             config.showJavalinBanner = false;
-        }).start(8080);
+        }).start(7071);
+
+        // Instanciar repositorios y servicios para inyectarlos en los controladores
+        UserRepository userRepository = new UserRepository();
+        CardRepository cardRepository = new CardRepository();
+        CardRegistry cardRegistry = new CardRegistry();
+        ShopService shopService = new ShopService(cardRegistry);
+        ShopController shopController = new ShopController(shopService, userRepository, cardRepository);
 
         // Endpoints
         AuthController.registerRoutes(api);
-        ShopController.registerRoutes(api);
-        System.out.println("API REST lista en http://localhost:8080");
+        shopController.registerRoutes(api);
+        System.out.println("API REST lista en http://localhost:7071");
 
         // Motor grafico
         App app = new App();

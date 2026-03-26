@@ -22,7 +22,7 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private int coins = 100;
+    private int coins;
 
     public User() {
     }
@@ -30,6 +30,7 @@ public class User {
     public User(String username, String password) {
         this.username = username;
         this.password = password;
+        this.coins = 100; // valor inicial en el constructor para probar, posteriormente cambiar
     }
 
     public int getId() {

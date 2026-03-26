@@ -21,6 +21,7 @@
         <!-- mapping files -->
         <mapping class="com.TFG1.model.User"/>
         <mapping class="com.TFG1.model.MatchHistory"/>
+        <mapping class="com.TFG1.model.UserCard"/>
         <!-- <mapping resource="org/hibernate/auction/Item.hbm.xml"/>
         <mapping resource="org/hibernate/auction/Bid.hbm.xml"/> -->
 
