@@ -2,6 +2,8 @@ package com.TFG1;
 
 import com.TFG1.controller.AuthController;
 import com.TFG1.controller.ShopController;
+import com.TFG1.controller.RoomController;
+import com.TFG1.service.RoomService;
 import com.TFG1.repository.HibernateUtil;
 import com.jme3.app.SimpleApplication;
 import com.jme3.material.Material;
@@ -42,10 +44,17 @@ public class App extends SimpleApplication {
         CardRegistry cardRegistry = new CardRegistry();
         ShopService shopService = new ShopService(cardRegistry);
         ShopController shopController = new ShopController(shopService, userRepository, cardRepository);
+        
+        // Instancio mi servicio y controlador de salas en memoria para mi Lógica de Salas (Lobby y Matchmaking web sin BD)
+        RoomService roomService = new RoomService();
+        // Le inyecto mi servicio al controlador (Arquitectura en Capas) para consumirlo en mi Javalin
+        RoomController roomController = new RoomController(roomService);
 
         // Endpoints
         AuthController.registerRoutes(api);
         shopController.registerRoutes(api);
+        // Registro aquí mis endpoints de RoomController local para habilitar recibir peticiones REST a mi web
+        roomController.registerRoutes(api);
         System.out.println("API REST lista en http://localhost:7071");
 
         // Motor grafico
