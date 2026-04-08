@@ -3,6 +3,7 @@ package com.TFG1.service;
 import com.TFG1.model.PlayerState;
 import com.TFG1.model.Room;
 import com.TFG1.model.UserStats;
+import com.TFG1.repository.UserStatsRepository;
 
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,11 +13,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Se manejan internamente las estructuras con diccionarios al no tener Base de Datos temporalmente.
  */
 public class RoomService {
-    // Almaceno en Memoria RAM *TODAS* las salas que existen actualmente en mi servidor. 
     private ConcurrentHashMap<String, Room> activeRooms = new ConcurrentHashMap<>();
     
-    // Almaceno en Memoria los Ratios/Estadísticas de usuarios de forma temporal
-    private ConcurrentHashMap<String, UserStats> statsCache = new ConcurrentHashMap<>();
+    private UserStatsRepository userStatsRepository;
+
+    public RoomService(UserStatsRepository userStatsRepository) {
+        this.userStatsRepository = userStatsRepository;
+    }
 
     /**
      *Un jugador (Host) puede crear una sala en el sistema usando un código único generado.
@@ -106,17 +109,25 @@ public class RoomService {
     
     // Grabo o documento mi Match en el historial y guardo un string descriptivo (details).
     public void recordMatchResult(String userId, boolean won, String details) {
-        // computeIfAbsent me ayuda a crear el UserStats si es el primer match del usuario.
-        UserStats stats = statsCache.computeIfAbsent(userId, UserStats::new);
+        UserStats stats = userStatsRepository.findById(userId);
+        if (stats == null) {
+            stats = new UserStats(userId);
+        }
         if (won) {
             stats.addWin(details);
         } else {
             stats.addLoss(details);
         }
+        userStatsRepository.saveOrUpdate(stats);
     }
     
     // Obtengo la información para mi Perfil directamente de mi diccionario en caché.
     public UserStats getUserStats(String userId) {
-        return statsCache.computeIfAbsent(userId, UserStats::new);
+        UserStats stats = userStatsRepository.findById(userId);
+        if (stats == null) {
+            stats = new UserStats(userId);
+            userStatsRepository.saveOrUpdate(stats);
+        }
+        return stats;
     }
 }

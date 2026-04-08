@@ -24,9 +24,9 @@ public class App extends SimpleApplication {
         System.out.println("--- INICIANDO SISTEMAS DEL TFG ---");
 
         try {
-            // HibernateUtil.getSessionFactory();
-            // System.out.println("Base de Datos conectada");
-            System.out.println("Base de Datos temporalmente DESACTIVADA para poder probar la tienda.");
+            HibernateUtil.getSessionFactory();
+            System.out.println("Base de Datos conectada");
+            // System.out.println("Base de Datos temporalmente DESACTIVADA para poder probar la tienda.");
         } catch (Exception e) {
             System.err.println("ERROR: No se pudo conectar a PostgreSQL");
             e.printStackTrace();
@@ -45,8 +45,9 @@ public class App extends SimpleApplication {
         ShopService shopService = new ShopService(cardRegistry);
         ShopController shopController = new ShopController(shopService, userRepository, cardRepository);
         
+        com.TFG1.repository.UserStatsRepository userStatsRepository = new com.TFG1.repository.UserStatsRepository();
         // Instancio mi servicio y controlador de salas en memoria para mi Lógica de Salas (Lobby y Matchmaking web sin BD)
-        RoomService roomService = new RoomService();
+        RoomService roomService = new RoomService(userStatsRepository);
         // Le inyecto mi servicio al controlador (Arquitectura en Capas) para consumirlo en mi Javalin
         RoomController roomController = new RoomController(roomService);
 

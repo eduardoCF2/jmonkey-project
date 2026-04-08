@@ -1,16 +1,38 @@
 package com.TFG1.model;
 
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Clase temporal en memoria que utilizo para registrar las estadísticas de un usuario.
+ * Clase para registrar las estadísticas de un usuario.
  * Reemplazo de forma temporal el uso de base de datos para guardar el winrate y mi historial.
  */
+@Entity
+@Table(name = "user_stats")
 public class UserStats {
+    @Id
+    @Column(name = "user_id")
     private String userId; // Identificador del usuario al que pertenecen las estadísticas
+    
+    @Column(name = "wins")
     private int wins;      // Contador de partidas ganadas
+    
+    @Column(name = "losses")
     private int losses;    // Contador de partidas perdidas
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_last_matches", joinColumns = @JoinColumn(name = "user_id"))
+    @OrderColumn(name = "match_order")
+    @Column(name = "match_details")
     private List<String> lastMatches; // Lista donde guardo mi historial reciente de partidas jugadas
 
     // Constructor vacío por si necesito instanciar con hibernate en el futuro
