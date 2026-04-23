@@ -73,12 +73,12 @@ public class GameManager {
 
     // --- GAMEPLAY ACTIONS ---
 
-    public boolean placeBid(int playerId, Bid bid) {
+    public boolean placeBid(String playerId, Bid bid) {
         if (state != GameState.PLAYER_TURN)
             return false;
 
         Player currentPlayer = players.get(currentPlayerIndex);
-        if (currentPlayer.getId() != playerId)
+        if (!currentPlayer.getId().equals(playerId))
             return false;
 
         if (diceLogic.isValid(bid, currentBid, getTotalDiceCount())) {
@@ -91,12 +91,12 @@ public class GameManager {
         return false;
     }
 
-    public boolean callDoubt(int playerId) {
+    public boolean callDoubt(String playerId) {
         if (state != GameState.PLAYER_TURN || currentBid == null)
             return false;
 
         Player currentPlayer = players.get(currentPlayerIndex);
-        if (currentPlayer.getId() != playerId)
+        if (!currentPlayer.getId().equals(playerId))
             return false;
 
         this.state = GameState.RESOLVING_DOUBT;
@@ -155,9 +155,9 @@ public class GameManager {
 
     // --- DISCONNECT ---
 
-    public void handleDisconnect(int playerId) {
+    public void handleDisconnect(String playerId) {
         for (Player p : players) {
-            if (p.getId() == playerId) {
+            if (p.getId().equals(playerId)) {
                 p.eliminateFull(); // Instantly eliminate their cup
 
                 // If it was their turn, immediately skip it

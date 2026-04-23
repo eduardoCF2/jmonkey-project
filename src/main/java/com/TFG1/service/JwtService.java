@@ -32,4 +32,17 @@ public class JwtService {
             throw new RuntimeException("Error interno de seguridad", exception);
         }
     }
+
+    // Método para validar el token y extraer el usuario
+    public static String validateToken(String token) {
+        try {
+            return JWT.require(ALGORITHM)
+                    .withIssuer("HAY QUE RELLENARLO CUIDAO")
+                    .build()
+                    .verify(token)
+                    .getClaim("username").asString();
+        } catch (Exception exception) {
+            throw new RuntimeException("Token inválido o expirado");
+        }
+    }
 }

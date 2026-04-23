@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class HeartbeatService {
 
-    private final ConcurrentHashMap<Integer, Long> lastHeartbeats;
+    private final ConcurrentHashMap<String, Long> lastHeartbeats;
     private boolean isRunning;
     private Thread monitorThread;
 
@@ -25,7 +25,7 @@ public class HeartbeatService {
      * 
      * @param playerId The ID of the player pinging the server.
      */
-    public void ping(int playerId) {
+    public void ping(String playerId) {
         lastHeartbeats.put(playerId, System.currentTimeMillis());
     }
 
@@ -33,7 +33,7 @@ public class HeartbeatService {
      * Removes a player from the heartbeat tracking entirely (e.g. they officially
      * left).
      */
-    public void removePlayer(int playerId) {
+    public void removePlayer(String playerId) {
         lastHeartbeats.remove(playerId);
     }
 
@@ -53,7 +53,7 @@ public class HeartbeatService {
             while (isRunning) {
                 long now = System.currentTimeMillis();
 
-                for (Integer playerId : lastHeartbeats.keySet()) {
+                for (String playerId : lastHeartbeats.keySet()) {
                     long lastSeen = lastHeartbeats.get(playerId);
 
                     if (now - lastSeen > timeoutMs) {

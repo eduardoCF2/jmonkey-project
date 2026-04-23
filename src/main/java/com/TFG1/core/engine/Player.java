@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Player {
 
-    private int id; // id del jugador
+    private String id; // id del jugador
     private final String name; // Nombre del jugador
     private final List<Die> cup; // Dados ocultos del jugador
     private final List<Card> hand; // Cartas del jugador
@@ -15,7 +15,7 @@ public class Player {
     // public Player() {
     // }
 
-    public Player(int id, String name, int initialDiceCount) {
+    public Player(String id, String name, int initialDiceCount) {
         this.id = id;
         this.name = name;
         this.cup = new ArrayList<>();
@@ -40,7 +40,7 @@ public class Player {
         return cup.isEmpty();
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 

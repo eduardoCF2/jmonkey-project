@@ -14,18 +14,13 @@ public class ConsoleGame {
         GameManager gm = new GameManager();
 
         // Creamos algunos jugadores de prueba
-        Player p1 = new Player(1, "Edu", 5);
-        Player p2 = new Player(2, "Sanz", 5);
-        Player p3 = new Player(3, "Soler", 5);
+        Player p1 = new Player("1", "Edu", 5);
+        Player p2 = new Player("2", "Sanz", 5);
+        Player p3 = new Player("3", "Soler", 5);
 
         gm.addPlayer(p1);
         gm.addPlayer(p2);
         gm.addPlayer(p3);
-
-        System.out.println("======================================");
-        System.out.println("  LIAR'S DICE - CONSOLE DEMONSTRATION  ");
-        System.out.println("======================================");
-
         gm.startGame();
         Scanner scanner = new Scanner(System.in);
 

@@ -21,6 +21,10 @@ public class RoomService {
         this.userStatsRepository = userStatsRepository;
     }
 
+    public Room getRoom(String roomCode) {
+        return activeRooms.get(roomCode);
+    }
+
     /**
      *Un jugador (Host) puede crear una sala en el sistema usando un código único generado.
      */

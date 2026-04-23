@@ -1,6 +1,7 @@
 package com.TFG1.model;
 
 import java.util.concurrent.ConcurrentHashMap;
+import com.TFG1.core.engine.GameManager;
 
 /**
  * Representa una sala de juego multijugador privada.
@@ -13,11 +14,13 @@ public class Room {
     private ConcurrentHashMap<String, PlayerState> players; 
     
     private boolean isPlaying; // Determina si ya he cerrado admisiones e iniciado el juego o si sigo en el Lobby
+    private GameManager gameManager; // Instancia del juego para la sala
 
     public Room(String roomCode) {
         this.roomCode = roomCode;
         this.players = new ConcurrentHashMap<>(); // Instancio el diccionario de jugadores, vacío al inicio
         this.isPlaying = false; // Al crearla, la pongo siempre en fase Lobby
+        this.gameManager = new GameManager(); // Cada sala tiene su propio tablero de juego
     }
 
     // Método de asistencia rápida que utilizo para introducir nuevos jugadores al diccionario de mi sala
@@ -34,4 +37,6 @@ public class Room {
     
     public boolean isPlaying() { return isPlaying; }
     public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
+    
+    public GameManager getGameManager() { return gameManager; }
 }
