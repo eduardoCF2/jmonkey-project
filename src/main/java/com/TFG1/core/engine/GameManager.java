@@ -6,6 +6,10 @@ import com.TFG1.core.dice.Die;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import com.TFG1.core.cards.Card;
+import com.TFG1.core.cards.CardRegistry;
+import com.TFG1.core.cards.CardType;
 
 public class GameManager {
 
@@ -15,6 +19,8 @@ public class GameManager {
     private Bid currentBid;
     private Player lastBidder;
     private final DiceLogic diceLogic;
+    private boolean skipNextTurn = false;
+    private final Random rand = new Random();
 
     public GameManager() {
         this.players = new ArrayList<>();
@@ -22,8 +28,6 @@ public class GameManager {
         this.currentPlayerIndex = 0;
         this.diceLogic = new DiceLogic();
     }
-
-    // --- INITIALIZATION ---
 
     public void addPlayer(Player player) {
         if (state == GameState.WAITING_FOR_PLAYERS) {
@@ -38,11 +42,10 @@ public class GameManager {
         }
     }
 
-    // --- ROUND MANAGEMENT ---
-
     private void startRound() {
         this.currentBid = null;
         this.lastBidder = null;
+        this.skipNextTurn = false;
 
         // Roll all dice for each active player
         for (Player p : players) {
@@ -52,8 +55,6 @@ public class GameManager {
                 }
             }
         }
-
-        // Shift starting player index logic can go here (to whoever lost last)
         ensureValidTurn();
 
         this.state = GameState.PLAYER_TURN;
@@ -63,6 +64,11 @@ public class GameManager {
         do {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         } while (players.get(currentPlayerIndex).isEliminated());
+
+        if (skipNextTurn) {
+            skipNextTurn = false;
+            nextTurn();
+        }
     }
 
     private void ensureValidTurn() {
@@ -91,6 +97,76 @@ public class GameManager {
         return false;
     }
 
+    public void dealCards(CardRegistry registry) {
+        List<Card> allTriunfos = new ArrayList<>();
+        List<Card> allPalos = new ArrayList<>();
+        List<Card> allCards = new ArrayList<>();
+
+        for (int i = 1; i <= 40; i++) {
+            Card c = registry.getCardById(i);
+            if (c != null) {
+                allCards.add(c);
+                if (c.type() == CardType.TRIUNFO)
+                    allTriunfos.add(c);
+                else if (c.type() == CardType.PALO)
+                    allPalos.add(c);
+            }
+        }
+
+        for (Player p : players) {
+            p.hand().clear();
+            if (!allTriunfos.isEmpty())
+                p.hand().add(allTriunfos.get(rand.nextInt(allTriunfos.size())));
+            if (!allPalos.isEmpty())
+                p.hand().add(allPalos.get(rand.nextInt(allPalos.size())));
+            if (!allCards.isEmpty())
+                p.hand().add(allCards.get(rand.nextInt(allCards.size())));
+        }
+    }
+
+    public boolean playCard(String playerId, int cardId) {
+        if (state != GameState.PLAYER_TURN)
+            return false;
+        Player currentPlayer = players.get(currentPlayerIndex);
+        if (!currentPlayer.getId().equals(playerId))
+            return false;
+
+        Card cardToPlay = null;
+        for (Card c : currentPlayer.hand()) {
+            if (c.id() == cardId) {
+                cardToPlay = c;
+                break;
+            }
+        }
+        if (cardToPlay == null)
+            return false;
+
+        currentPlayer.hand().remove(cardToPlay);
+
+        if (cardToPlay.type() == CardType.PALO) {
+            for (Die d : currentPlayer.cup())
+                d.roll();
+        } else if (cardToPlay.type() == CardType.TRIUNFO) {
+            skipNextTurn = true;
+        } else if (cardToPlay.type() == CardType.JOKER) {
+            int targetIdx = currentPlayerIndex;
+            do {
+                targetIdx = (targetIdx + 1) % players.size();
+            } while (players.get(targetIdx).isEliminated());
+
+            Player target = players.get(targetIdx);
+            target.loseDie();
+
+            int activePlayers = 0;
+            for (Player p : players)
+                if (!p.isEliminated())
+                    activePlayers++;
+            if (activePlayers <= 1)
+                this.state = GameState.GAME_OVER;
+        }
+        return true;
+    }
+
     public boolean callDoubt(String playerId) {
         if (state != GameState.PLAYER_TURN || currentBid == null)
             return false;
@@ -104,8 +180,6 @@ public class GameManager {
         return true;
     }
 
-    // --- RESOLUTION ---
-
     private void resolveDoubt(Player doubter) {
         int specificFace = currentBid.value();
         int expectedQuantity = currentBid.quantity();
@@ -116,8 +190,6 @@ public class GameManager {
             if (!p.isEliminated()) {
                 for (Die die : p.cup()) {
                     int rolledValue = die.getValue();
-                    // Ones map as jokers in traditional Perudo, unless a palifico round, but
-                    // sticking to basic logic for now.
                     if (rolledValue == specificFace || rolledValue == 1) {
                         actualQuantity++;
                     }
@@ -194,5 +266,20 @@ public class GameManager {
 
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
+    }
+
+    public List<Player> getPlayers() {
+        return players;
+    }
+
+    public Player getWinner() {
+        if (state != GameState.GAME_OVER)
+            return null;
+        for (Player p : players) {
+            if (!p.isEliminated()) {
+                return p; // The last one standing
+            }
+        }
+        return null;
     }
 }

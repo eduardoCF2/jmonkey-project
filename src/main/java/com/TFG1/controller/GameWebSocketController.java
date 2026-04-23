@@ -14,23 +14,29 @@ import com.TFG1.model.Room;
 import com.TFG1.service.RoomService;
 
 import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.TFG1.core.engine.GameState;
+import com.TFG1.core.dice.Die;
+import com.TFG1.core.cards.Card;
+import com.TFG1.core.cards.CardRegistry;
 
 /**
  * Controlador para la Pasarela de WebSockets.
  * Maneja las conexiones en tiempo real de los jugadores durante el transcurso
  * de una partida.
  */
+
 public class GameWebSocketController {
 
-    // Diccionario para guardar las conexiones activas por sala.
-    // Clave: roomCode. Valor: Set de conexiones (Contextos WebSocket de los
-    // jugadores ahí metidos).
     private static final Map<String, Set<WsContext>> roomConnections = new ConcurrentHashMap<>();
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static void registerRoutes(Javalin api, RoomService roomService) {
+    public static void registerRoutes(Javalin api, RoomService roomService, CardRegistry cardRegistry) {
 
         // El endpoint será /ws/game/{code}?token=XYZ
         api.ws("/ws/game/{code}", ws -> {
@@ -41,35 +47,32 @@ public class GameWebSocketController {
                 String token = ctx.queryParam("token");
 
                 try {
-                    // Evitar que el servidor corte por inactividad a los pocos segundos/minutos. Lo
-                    // subimos a 1 hora.
+                    // Evita que el servidor se cuelgue
                     ctx.session.setIdleTimeout(java.time.Duration.ofHours(1));
 
-                    // Validamos Seguridad
                     if (token == null)
                         throw new RuntimeException("No token present");
                     String username = JwtService.validateToken(token);
 
-                    // Autorizado. Le guardamos un "pin" en la solapa para reconocerle en los
-                    // siguientes mensajes
+                    // Autorizacion
+
                     ctx.attribute("username", username);
 
                     // Metemos su tubo de comunicación en la lista de nuestra sala
                     roomConnections.putIfAbsent(roomCode, ConcurrentHashMap.newKeySet());
                     roomConnections.get(roomCode).add(ctx);
 
-                    System.out.println("✅ [WS] Jugador " + username + " conectado a sala " + roomCode);
+                    System.out.println("[WS] Jugador " + username + " conectado a sala " + roomCode);
 
                     // Avisamos a todos los de la sala (broadcast) que ha entrado alguien
                     broadcastMessage(roomCode, new WsMessage("SYSTEM", username + " se ha unido a la partida."));
 
                 } catch (Exception e) {
-                    // Si el token es falso o no hay token, cerramos la puerta violentamente
                     ctx.session.close(1008, "Desautorizado: Token inválido");
                 }
             });
 
-            // 2. Cuando recibimos un mensaje (Cartas jugadas, dados, chat...)
+            // Espera un mensaje
             ws.onMessage(ctx -> {
                 String roomCode = ctx.pathParam("code");
                 String username = ctx.attribute("username");
@@ -77,7 +80,7 @@ public class GameWebSocketController {
 
                 try {
                     WsMessage msg = mapper.readValue(rawMessage, WsMessage.class);
-                    System.out.println("📩 [WS " + roomCode + "] " + username + " -> Acción: " + msg.getType());
+                    System.out.println("[WS " + roomCode + "] " + username + " -> Acción: " + msg.getType());
 
                     Room room = roomService.getRoom(roomCode);
                     if (room == null)
@@ -86,26 +89,18 @@ public class GameWebSocketController {
 
                     switch (msg.getType()) {
                         case "START_GAME":
-                            // Inicializamos todos los jugadores dentro de la logica del juego
                             for (PlayerState ps : room.getPlayers().values()) {
                                 gm.addPlayer(new Player(ps.getUserId(), ps.getUserId(), 5));
                             }
+                            gm.dealCards(cardRegistry);
                             gm.startGame();
 
                             broadcastMessage(roomCode, new WsMessage("GAME_STARTED", "¡Comienza el juego de Dudo!"));
-
-                            // Enviamos un mensaje PRIVADO a cada uno diciendole cuáles son sus dados
-                            // ocultos
-                            Set<WsContext> playersInRoom = roomConnections.get(roomCode);
-                            for (WsContext playerCtx : playersInRoom) {
-                                String ctxUser = playerCtx.attribute("username");
-                                // Aquí podríamos extraer los dados exactos iterando por la lista de
-                                // gm.players()
-                                // De momento, solo avisamos
-                                WsMessage secretMsg = new WsMessage("SECRET_DICE",
-                                        "Tus dados han sido tirados. (El servidor los conoce)");
-                                playerCtx.send(mapper.writeValueAsString(secretMsg));
-                            }
+                            sendSecretDiceToPlayers(roomCode, gm);
+                            sendSecretHandsToPlayers(roomCode, gm);
+                            broadcastTableState(roomCode, gm);
+                            broadcastMessage(roomCode,
+                                    new WsMessage("NEXT_TURN", "Es el turno de: " + gm.getCurrentPlayer().getName()));
                             break;
 
                         case "PLACE_BID":
@@ -118,6 +113,7 @@ public class GameWebSocketController {
                                 if (success) {
                                     broadcastMessage(roomCode,
                                             new WsMessage("NEW_BID", username + " apostó " + qty + " dados de " + val));
+                                    broadcastTableState(roomCode, gm);
                                     broadcastMessage(roomCode, new WsMessage("NEXT_TURN",
                                             "Es el turno de: " + gm.getCurrentPlayer().getName()));
                                 } else {
@@ -131,10 +127,74 @@ public class GameWebSocketController {
                             if (startedDoubt) {
                                 broadcastMessage(roomCode,
                                         new WsMessage("DOUBT_RESULT", username + " HA DUDADO. Se resuelve la ronda."));
-                                broadcastMessage(roomCode, new WsMessage("NEXT_TURN",
-                                        "Nueva ronda, tira: " + gm.getCurrentPlayer().getName()));
+
+                                if (gm.getState() == GameState.GAME_OVER) {
+                                    Player winner = gm.getWinner();
+                                    String winnerName = (winner != null) ? winner.getName() : "Nadie";
+                                    broadcastMessage(roomCode,
+                                            new WsMessage("GAME_OVER", "El ganador es: " + winnerName));
+                                    try {
+                                        for (Player p : gm.getPlayers()) {
+                                            boolean won = p.equals(winner);
+                                            roomService.recordMatchResult(p.getId(), won, "Partida finalizada");
+                                        }
+                                    } catch (Exception e) {
+                                        System.out.println("No se pudo guardar historial en DB: " + e.getMessage());
+                                    }
+                                } else {
+                                    sendSecretDiceToPlayers(roomCode, gm);
+                                    broadcastTableState(roomCode, gm);
+                                    broadcastMessage(roomCode, new WsMessage("NEXT_TURN",
+                                            "Nueva ronda, tira: " + gm.getCurrentPlayer().getName()));
+                                }
                             } else {
                                 ctx.send(mapper.writeValueAsString(new WsMessage("ERROR", "No puedes dudar ahora")));
+                            }
+                            break;
+
+                        case "PLAYER_READY":
+                            roomService.setPlayerReady(roomCode, username, true);
+                            broadcastMessage(roomCode, new WsMessage("PLAYER_READY", username + " está listo."));
+                            break;
+
+                        case "PLAY_CARD":
+                            if (msg.getPayload() != null) {
+                                Map<String, Integer> map = (Map<String, Integer>) msg.getPayload();
+                                int cardId = map.get("cardId");
+
+                                boolean success = gm.playCard(username, cardId);
+                                if (success) {
+                                    Card playedCard = cardRegistry.getCardById(cardId);
+                                    String effectMsg = username + " jugó " + playedCard.name() + ".";
+                                    if (playedCard.type() == com.TFG1.core.cards.CardType.PALO)
+                                        effectMsg += " ¡Ha relanzado sus dados!";
+                                    else if (playedCard.type() == com.TFG1.core.cards.CardType.TRIUNFO)
+                                        effectMsg += " ¡Activa bandera de saltar turno enemigo!";
+                                    else if (playedCard.type() == com.TFG1.core.cards.CardType.JOKER)
+                                        effectMsg += " ¡Sabotaje! El siguiente rival pierde un dado.";
+
+                                    broadcastMessage(roomCode, new WsMessage("CARD_EFFECT", effectMsg));
+
+                                    if (gm.getState() == GameState.GAME_OVER) {
+                                        Player winner = gm.getWinner();
+                                        String winnerName = (winner != null) ? winner.getName() : "Nadie";
+                                        broadcastMessage(roomCode,
+                                                new WsMessage("GAME_OVER", "El ganador es: " + winnerName));
+                                        try {
+                                            for (Player p : gm.getPlayers())
+                                                roomService.recordMatchResult(p.getId(), p.equals(winner),
+                                                        "Partida finalizada por Joker");
+                                        } catch (Exception e) {
+                                        }
+                                    } else {
+                                        sendSecretDiceToPlayers(roomCode, gm);
+                                        sendSecretHandsToPlayers(roomCode, gm);
+                                        broadcastTableState(roomCode, gm);
+                                    }
+                                } else {
+                                    ctx.send(mapper.writeValueAsString(
+                                            new WsMessage("ERROR", "No puedes jugar esa carta ahora")));
+                                }
                             }
                             break;
 
@@ -158,18 +218,40 @@ public class GameWebSocketController {
                     roomConnections.get(roomCode).remove(ctx);
                     System.out.println("[WS] Jugador " + username + " se desconectó de " + roomCode);
                     broadcastMessage(roomCode, new WsMessage("SYSTEM", username + " se ha desconectado."));
+
+                    Room room = roomService.getRoom(roomCode);
+                    if (room != null && room.isPlaying()) {
+                        GameManager gm = room.getGameManager();
+                        gm.handleDisconnect(username);
+
+                        if (gm.getState() == GameState.GAME_OVER) {
+                            Player winner = gm.getWinner();
+                            if (winner != null) {
+                                broadcastMessage(roomCode, new WsMessage("GAME_OVER",
+                                        "El ganador es: " + winner.getName() + " por desconexión"));
+                                try {
+                                    for (Player p : gm.getPlayers()) {
+                                        roomService.recordMatchResult(p.getId(), p.equals(winner),
+                                                "Ganado por abandono");
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println("No se pudo guardar historial DB: " + e.getMessage());
+                                }
+                            }
+                        } else {
+                            broadcastTableState(roomCode, gm);
+                            broadcastMessage(roomCode,
+                                    new WsMessage("NEXT_TURN", "Turno de: " + gm.getCurrentPlayer().getName()));
+                        }
+                    }
                 }
             });
-
-            // 4. Manejo de Errores imprevistos
             ws.onError(ctx -> {
                 System.err.println("ERROR en Socket: " + ctx.error());
             });
         });
     }
 
-    // Método utilitario para enviar un mensaje a TODOS los jugadores enchufados en
-    // una Sala X
     private static void broadcastMessage(String roomCode, WsMessage message) {
         Set<WsContext> playersInRoom = roomConnections.get(roomCode);
         if (playersInRoom != null) {
@@ -186,5 +268,82 @@ public class GameWebSocketController {
                 e.printStackTrace();
             }
         }
+    }
+
+    private static void sendSecretDiceToPlayers(String roomCode, GameManager gm) {
+        Set<WsContext> playersInRoom = roomConnections.get(roomCode);
+        if (playersInRoom == null)
+            return;
+
+        for (WsContext playerCtx : playersInRoom) {
+            String ctxUser = playerCtx.attribute("username");
+            for (Player p : gm.getPlayers()) {
+                if (p.getId().equals(ctxUser)) {
+                    List<Integer> diceVals = new ArrayList<>();
+                    for (Die d : p.cup()) {
+                        diceVals.add(d.getValue());
+                    }
+                    WsMessage secretMsg = new WsMessage("SECRET_DICE", diceVals);
+                    try {
+                        if (playerCtx.session.isOpen()) {
+                            playerCtx.send(mapper.writeValueAsString(secretMsg));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private static void sendSecretHandsToPlayers(String roomCode, GameManager gm) {
+        Set<WsContext> playersInRoom = roomConnections.get(roomCode);
+        if (playersInRoom == null)
+            return;
+
+        for (WsContext playerCtx : playersInRoom) {
+            String ctxUser = playerCtx.attribute("username");
+            for (Player p : gm.getPlayers()) {
+                if (p.getId().equals(ctxUser)) {
+                    WsMessage secretMsg = new WsMessage("SECRET_HAND", p.hand());
+                    try {
+                        if (playerCtx.session.isOpen()) {
+                            playerCtx.send(mapper.writeValueAsString(secretMsg));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private static void broadcastTableState(String roomCode, GameManager gm) {
+        Map<String, Object> stateInfo = new HashMap<>();
+
+        // Player states
+        List<Map<String, Object>> playersInfo = new ArrayList<>();
+        for (Player p : gm.getPlayers()) {
+            Map<String, Object> pInfo = new HashMap<>();
+            pInfo.put("name", p.getName());
+            pInfo.put("diceCount", p.cup().size());
+            pInfo.put("eliminated", p.isEliminated());
+            playersInfo.add(pInfo);
+        }
+        stateInfo.put("players", playersInfo);
+
+        // Current bid
+        if (gm.getCurrentBid() != null) {
+            Map<String, Integer> bidInfo = new HashMap<>();
+            bidInfo.put("quantity", gm.getCurrentBid().quantity());
+            bidInfo.put("value", gm.getCurrentBid().value());
+            stateInfo.put("currentBid", bidInfo);
+        } else {
+            stateInfo.put("currentBid", null);
+        }
+
+        broadcastMessage(roomCode, new WsMessage("TABLE_STATE", stateInfo));
     }
 }
