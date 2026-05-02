@@ -1,6 +1,7 @@
 package com.TFG1.controller;
 
 import com.TFG1.service.RoomService;
+import com.TFG1.model.Room;
 import io.javalin.Javalin;
 import java.util.Map;
 
@@ -21,8 +22,8 @@ public class RoomController {
     // Registro uno a uno los dominios de la URL a los que mi frontend puede lanzar peticiones
     public void registerRoutes(Javalin api) {
         
-        // ENDPOINT POST /rooms | Opcion para Crear mi Sala Privada.
-        api.post("/rooms", ctx -> {
+        // ENDPOINT POST /api/rooms | Opcion para Crear mi Sala Privada.
+        api.post("/api/rooms", ctx -> {
             // Recibo como molde 'RoomRequest' del JSON quién me solicita crearla (su UserId)
             String userId = ctx.bodyAsClass(RoomRequest.class).userId;
             
@@ -33,8 +34,8 @@ public class RoomController {
             ctx.status(201).json(Map.of("roomCode", roomCode, "msg", "Sala creada correctamente"));
         });
 
-        // ENDPOINT POST /rooms/{code}/join | Para unirme de Visitante a una Sala.
-        api.post("/rooms/{code}/join", ctx -> {
+        // ENDPOINT POST /api/rooms/{code}/join | Para unirme de Visitante a una Sala.
+        api.post("/api/rooms/{code}/join", ctx -> {
             String code = ctx.pathParam("code"); // Tomo la sección de la URL con el code.
             String userId = ctx.bodyAsClass(RoomRequest.class).userId; 
             
@@ -46,8 +47,8 @@ public class RoomController {
             }
         });
 
-        // ENDPOINT PUT /rooms/{code}/ready | Cambiar estado de Listo
-        api.put("/rooms/{code}/ready", ctx -> {
+        // ENDPOINT PUT /api/rooms/{code}/ready | Cambiar estado de Listo
+        api.put("/api/rooms/{code}/ready", ctx -> {
             String code = ctx.pathParam("code");
             ReadyRequest req = ctx.bodyAsClass(ReadyRequest.class); // Extraigo la petición "isReady" del Json 
             
@@ -56,8 +57,8 @@ public class RoomController {
             ctx.status(200).result("Estado de Readiness ha sido modificado y salvado");
         });
 
-        // ENDPOINT POST /rooms/{code}/start | Arrancar mi Partida
-        api.post("/rooms/{code}/start", ctx -> {
+        // ENDPOINT POST /api/rooms/{code}/start | Arrancar mi Partida
+        api.post("/api/rooms/{code}/start", ctx -> {
             String code = ctx.pathParam("code");
             String hostId = ctx.bodyAsClass(RoomRequest.class).userId; 
             
@@ -70,6 +71,32 @@ public class RoomController {
             } else { 
                 // Corto el intento porque no logré el ready de todos o no soy host
                 ctx.status(400).result("Fallo al autorizar: Debo corroborar que soy Host auténtico y vigilar que mis compañeros oponentes hayan puesto que están Listos");
+            }
+        });
+        
+        // ENDPOINT GET /api/rooms/{code} | Obtener estado de la sala
+        api.get("/api/rooms/{code}", ctx -> {
+            String code = ctx.pathParam("code");
+            Room room = roomService.getRoom(code);
+            if (room != null) {
+                // Mapeamos a mano para evitar el crash (Error 500) de Jackson al intentar serializar el GameManager entero
+                Map<String, Object> response = new java.util.HashMap<>();
+                response.put("roomCode", room.getRoomCode());
+                response.put("isPlaying", room.isPlaying());
+                
+                Map<String, Object> playersMap = new java.util.HashMap<>();
+                for (com.TFG1.model.PlayerState p : room.getPlayers().values()) {
+                    Map<String, Object> pInfo = new java.util.HashMap<>();
+                    pInfo.put("userId", p.getUserId());
+                    pInfo.put("isReady", p.isReady());
+                    pInfo.put("isHost", p.isHost());
+                    playersMap.put(p.getUserId(), pInfo);
+                }
+                response.put("players", playersMap);
+                
+                ctx.status(200).json(response);
+            } else {
+                ctx.status(404).result("Sala no encontrada");
             }
         });
         
