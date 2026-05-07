@@ -145,7 +145,7 @@ public class GameWebSocketController {
                                     sendSecretDiceToPlayers(roomCode, gm);
                                     broadcastTableState(roomCode, gm);
                                     broadcastMessage(roomCode, new WsMessage("NEXT_TURN",
-                                            doubtResult + "\nNueva ronda, tira: " + gm.getCurrentPlayer().getName()));
+                                            "Nueva ronda, tira: " + gm.getCurrentPlayer().getName()));
                                 }
                             } else {
                                 ctx.send(mapper.writeValueAsString(new WsMessage("ERROR", "No puedes dudar ahora")));
