@@ -86,6 +86,33 @@ public class AuthController {
                 ctx.status(500).json("{ \"error\": \"INTERNAL_SERVER_ERROR\" }");
             }
         });
+
+        // Endpoint para obtener el perfil del usuario autenticado (monedas, nombre...)
+        api.get("/api/profile", ctx -> {
+            try {
+                String authHeader = ctx.header("Authorization");
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                    ctx.status(401).json("{ \"error\": \"No autorizado\" }");
+                    return;
+                }
+                String token = authHeader.substring(7);
+                String username = com.TFG1.service.JwtService.validateToken(token);
+                if (username == null) {
+                    ctx.status(401).json("{ \"error\": \"Token inválido\" }");
+                    return;
+                }
+                com.TFG1.repository.UserRepository userRepo = new com.TFG1.repository.UserRepository();
+                User user = userRepo.findByUsername(username);
+                if (user == null) {
+                    ctx.status(404).json("{ \"error\": \"Usuario no encontrado\" }");
+                    return;
+                }
+                ctx.status(200).json("{ \"username\": \"" + user.getUsername() + "\", \"coins\": " + user.getCoins() + " }");
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).json("{ \"error\": \"INTERNAL_SERVER_ERROR\" }");
+            }
+        });
     }
 
     // METODOS AUXILIARES OJO
