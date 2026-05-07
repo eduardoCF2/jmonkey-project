@@ -141,6 +141,8 @@ public class GameWebSocketController {
                                     } catch (Exception e) {
                                         System.out.println("No se pudo guardar historial en DB: " + e.getMessage());
                                     }
+                                    // Eliminar la sala del servidor para que no se reutilice
+                                    roomService.closeRoom(roomCode);
                                 } else {
                                     sendSecretDiceToPlayers(roomCode, gm);
                                     broadcastTableState(roomCode, gm);

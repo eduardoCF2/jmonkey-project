@@ -43,6 +43,14 @@ public class RoomService {
     }
 
     /**
+     * Elimina una sala terminada del mapa de salas activas.
+     */
+    public void closeRoom(String roomCode) {
+        activeRooms.remove(roomCode);
+        System.out.println("[RoomService] Sala " + roomCode + " eliminada del sistema.");
+    }
+
+    /**
      *Los jugadores se unen manualmente y bloqueo mi sala a un máximo de 4 personas.
      */
     public boolean joinRoom(String roomCode, String userId) {
