@@ -123,10 +123,10 @@ public class GameWebSocketController {
                             break;
 
                         case "CALL_DOUBT":
-                            boolean startedDoubt = gm.callDoubt(username);
-                            if (startedDoubt) {
+                            String doubtResult = gm.callDoubt(username);
+                            if (doubtResult != null) {
                                 broadcastMessage(roomCode,
-                                        new WsMessage("DOUBT_RESULT", username + " HA DUDADO. Se resuelve la ronda."));
+                                        new WsMessage("DOUBT_RESULT", doubtResult));
 
                                 if (gm.getState() == GameState.GAME_OVER) {
                                     Player winner = gm.getWinner();

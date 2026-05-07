@@ -16,6 +16,7 @@ public class RoomService {
     private ConcurrentHashMap<String, Room> activeRooms = new ConcurrentHashMap<>();
     
     private UserStatsRepository userStatsRepository;
+    private com.TFG1.repository.UserRepository userRepository = new com.TFG1.repository.UserRepository();
 
     public RoomService(UserStatsRepository userStatsRepository) {
         this.userStatsRepository = userStatsRepository;
@@ -123,6 +124,18 @@ public class RoomService {
             stats.addLoss(details);
         }
         userStatsRepository.saveOrUpdate(stats);
+        
+        // Sumar o restar monedas al jugador
+        com.TFG1.model.User dbUser = userRepository.findByUsername(userId);
+        if (dbUser != null) {
+            if (won) {
+                dbUser.setCoins(dbUser.getCoins() + 15);
+            } else {
+                // No permitimos saldo negativo
+                dbUser.setCoins(Math.max(0, dbUser.getCoins() - 15));
+            }
+            userRepository.update(dbUser);
+        }
     }
     
     // Obtengo la información para mi Perfil directamente de mi diccionario en caché.

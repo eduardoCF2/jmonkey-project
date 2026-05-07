@@ -167,20 +167,19 @@ public class GameManager {
         return true;
     }
 
-    public boolean callDoubt(String playerId) {
+    public String callDoubt(String playerId) {
         if (state != GameState.PLAYER_TURN || currentBid == null)
-            return false;
+            return null;
 
         Player currentPlayer = players.get(currentPlayerIndex);
         if (!currentPlayer.getId().equals(playerId))
-            return false;
+            return null;
 
         this.state = GameState.RESOLVING_DOUBT;
-        resolveDoubt(currentPlayer);
-        return true;
+        return resolveDoubt(currentPlayer);
     }
 
-    private void resolveDoubt(Player doubter) {
+    private String resolveDoubt(Player doubter) {
         int specificFace = currentBid.value();
         int expectedQuantity = currentBid.quantity();
 
@@ -197,17 +196,21 @@ public class GameManager {
             }
         }
 
+        String result;
         if (actualQuantity >= expectedQuantity) {
             // The bid was true! Doubter loses a die.
             doubter.loseDie();
             currentPlayerIndex = players.indexOf(doubter); // Loser starts next round
+            result = "¡Fallo de " + doubter.getName() + "! Sí había al menos " + expectedQuantity + " dados de " + specificFace + " (Había " + actualQuantity + "). Pierde un dado.";
         } else {
             // The bid was false! Bidder loses a die.
             lastBidder.loseDie();
             currentPlayerIndex = players.indexOf(lastBidder); // Loser starts next round
+            result = "¡" + doubter.getName() + " acertó! No había " + expectedQuantity + " dados de " + specificFace + " (Solo había " + actualQuantity + "). " + lastBidder.getName() + " pierde un dado.";
         }
 
         checkGameOver();
+        return result;
     }
 
     private void checkGameOver() {
