@@ -132,7 +132,7 @@ public class GameWebSocketController {
                                     Player winner = gm.getWinner();
                                     String winnerName = (winner != null) ? winner.getName() : "Nadie";
                                     broadcastMessage(roomCode,
-                                            new WsMessage("GAME_OVER", "El ganador es: " + winnerName));
+                                            new WsMessage("GAME_OVER", doubtResult + "\nEl ganador es: " + winnerName));
                                     try {
                                         for (Player p : gm.getPlayers()) {
                                             boolean won = p.equals(winner);
@@ -145,7 +145,7 @@ public class GameWebSocketController {
                                     sendSecretDiceToPlayers(roomCode, gm);
                                     broadcastTableState(roomCode, gm);
                                     broadcastMessage(roomCode, new WsMessage("NEXT_TURN",
-                                            "Nueva ronda, tira: " + gm.getCurrentPlayer().getName()));
+                                            doubtResult + "\nNueva ronda, tira: " + gm.getCurrentPlayer().getName()));
                                 }
                             } else {
                                 ctx.send(mapper.writeValueAsString(new WsMessage("ERROR", "No puedes dudar ahora")));

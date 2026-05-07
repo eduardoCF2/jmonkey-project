@@ -19,13 +19,13 @@ public class DiceLogic {
             return newBid.value() >= 1 && newBid.value() <= 6;
         }
 
-        // Estructura para las apuestas:
-        if (newBid.quantity() > previousBid.quantity()) {
-            return true;
-        } else if (newBid.quantity() == previousBid.quantity()) {
-            return newBid.value() > previousBid.value();
+        // Nueva regla: No se puede cambiar el valor (la cara) del dado una vez fijado en la ronda.
+        // Solo se puede subir la cantidad.
+        if (newBid.value() != previousBid.value()) {
+            return false;
         }
-        return false;
+
+        return newBid.quantity() > previousBid.quantity();
     }
 
 }
