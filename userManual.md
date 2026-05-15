@@ -1,4 +1,4 @@
-# 📖 Manual de Usuario: Dudo & Magia
+# 📖 Manual de Usuario: Dudo
 
 ¡Bienvenido al manual oficial de usuario! Este documento está diseñado para guiarte paso a paso por todas las funcionalidades de nuestro juego de mesa virtual, desde la creación de tu cuenta hasta coronarte como el maestro mentiroso de la mesa.
 
@@ -81,7 +81,7 @@ El jugador que pierde el dado es el encargado de abrir la siguiente ronda.
 
 Durante tu turno, **estrictamente antes de pujar o dudar**, puedes jugar una de las cartas que trajiste en tu mazo para alterar la realidad matemática a tu favor.
 
-### ✨ Efectos Disponibles:
+### Efectos Disponibles:
 
 #### 1. Cartas de Probabilidad (Números del 1 al 6)
 Al jugarlas, tus dados se re-tirarán automáticamente con una probabilidad alterada de caer en el número de la carta:
