@@ -9,12 +9,12 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Capa de Servicios: Aquí se concentra "Lógica de Negocio de Procesamiento" de las Salas y emparejamiento.
- * Se manejan internamente las estructuras con diccionarios al no tener Base de Datos temporalmente.
+ * Capa de Servicios: Aqui se concentra "Logica de Negocio de Procesamiento" de las Salas y emparejamiento
+ * Se manejan internamente las estructuras con diccionarios al no tener Base de Datos temporalmente
  */
 public class RoomService {
     private ConcurrentHashMap<String, Room> activeRooms = new ConcurrentHashMap<>();
-    
+
     private UserStatsRepository userStatsRepository;
     private com.TFG1.repository.UserRepository userRepository = new com.TFG1.repository.UserRepository();
 
@@ -27,23 +27,21 @@ public class RoomService {
     }
 
     /**
-     *Un jugador (Host) puede crear una sala en el sistema usando un código único generado.
+     *Un jugador (Host) puede crear una sala en el sistema usando un codigo unico generado
      */
     public String createRoom(String hostUserId) {
-        String roomCode = generateRandomCode(6); // Genero la ID alfanumérica de tamaño 6
-        Room newRoom = new Room(roomCode); // Fabrico e instancio mi nueva sala
-        
-        // Al creador de la sala lo incorporo automáticamente y le doy poder de Host ('true')
+        String roomCode = generateRandomCode(6);
+        Room newRoom = new Room(roomCode);
+
         PlayerState hostPlayer = new PlayerState(hostUserId, true);
-        newRoom.addPlayer(hostPlayer); 
-        
-        // Guardo y empaqueto mi sala en la lista maestra de salas activas
+        newRoom.addPlayer(hostPlayer);
+
         activeRooms.put(roomCode, newRoom);
         return roomCode;
     }
 
     /**
-     * Elimina una sala terminada del mapa de salas activas.
+     * Elimina una sala terminada del mapa de salas activas
      */
     public void closeRoom(String roomCode) {
         activeRooms.remove(roomCode);
@@ -51,62 +49,99 @@ public class RoomService {
     }
 
     /**
-     *Los jugadores se unen manualmente y bloqueo mi sala a un máximo de 4 personas.
+     *Los jugadores se unen manualmente y bloqueo mi sala a un maximo de 4 personas
      */
     public boolean joinRoom(String roomCode, String userId) {
-        Room room = activeRooms.get(roomCode); // Busco en mi HashMap si existe por su código
+        Room room = activeRooms.get(roomCode);
 
-        // Si mi sala no existe o su estado ya es Playing, no le doy el pase
         if (room == null || room.isPlaying()) return false;
-        
-        // Evito que entren más si ya hay 4 usuarios en mi Room.
+
         if (room.getPlayers().size() >= 4) return false;
-        
-        // Admito al invitado con el rol pasivo poniendo su parámetro Host en falso.
+
         room.addPlayer(new PlayerState(userId, false));
         return true;
     }
 
     /**
-     * Actualizo y sincronizo el estado real de mi jugador de si está 'Listo/No Listo'.
+     * Actualizo y sincronizo el estado real de mi jugador de si esta 'Listo/No Listo'
      */
     public void setPlayerReady(String roomCode, String userId, boolean isReady) {
         Room room = activeRooms.get(roomCode);
-        // Me aseguro de que no he borrado la sala y que el jugador esté dentro antes de cambiarle el estado
+
         if (room != null && room.getPlayers().containsKey(userId)) {
             room.getPlayers().get(userId).setReady(isReady);
         }
     }
 
     /**
-     * Se habilita el inicio solo cuando el Host avisa. A su vez valido que TODOS respondan 'Ready/isReady' a true.
+     * Guarda la seleccion de cartas del jugador (Shop/Deck Builder)
      */
-    public boolean startGame(String roomCode, String requestUserId) {
+    public boolean setPlayerCards(String roomCode, String userId, java.util.List<Integer> cardIds, com.TFG1.core.cards.CardRegistry registry) {
         Room room = activeRooms.get(roomCode);
-        if (room == null) return false;
-        
-        // Capto el objeto PlayerState de quien me está pidiendo arrancar la partida
-        PlayerState requester = room.getPlayers().get(requestUserId);
-        
-        //Solo le dejo iniciar a este requester si coincide con el Host.
-        if (requester == null || !requester.isHost()) return false;
-        
-        //Evito el fallo si estás solo, pido al menos 2 personas para iniciar.
-        if (room.getPlayers().size() < 2) return false;
-        
-        // Se revisa a todos los jugadores que tengo anotados en la estancia
-        for (PlayerState player : room.getPlayers().values()) {
-            // Si un solo participante no está Ready y no es el Host, rechazo arrancar.
-            if (!player.isReady() && !player.isHost()) { 
-                return false;
+        if (room == null || room.isPlaying()) return false;
+
+        PlayerState player = room.getPlayers().get(userId);
+        if (player == null) return false;
+
+        if (cardIds.size() > 4) return false;
+
+        int percentageCount = 0;
+        int jokerCount = 0;
+        int triumphCount = 0;
+        java.util.Set<Integer> percentageFaces = new java.util.HashSet<>();
+
+        for (Integer id : cardIds) {
+            com.TFG1.core.cards.Card c = registry.getCardById(id);
+            if (c == null) return false;
+
+            if (c.type() == com.TFG1.core.cards.CardType.PALO) {
+                if (c.value() >= 1 && c.value() <= 6) {
+                    percentageCount++;
+                    if (!percentageFaces.add(c.value())) {
+                        return false;
+                    }
+                } else if (c.value() == 7) {
+
+                    jokerCount++;
+                }
+            } else if (c.type() == com.TFG1.core.cards.CardType.JOKER) {
+                jokerCount++;
+            } else if (c.type() == com.TFG1.core.cards.CardType.TRIUNFO) {
+                triumphCount++;
             }
         }
-        room.setPlaying(true); // Cierro mi sala. Quien llame después para unirse recibirá error.
+
+        if (percentageCount > 2 || jokerCount > 1 || triumphCount > 1) return false;
+
+        player.setSelectedCards(cardIds);
         return true;
     }
 
     /**
-     * Algoritmo de Generación para Códigos Random usando iteración simple alfanumérica.
+     * Se habilita el inicio solo cuando el Host avisa A su vez valido que TODOS respondan 'Ready/isReady' a true
+     */
+    public boolean startGame(String roomCode, String requestUserId) {
+        Room room = activeRooms.get(roomCode);
+        if (room == null) return false;
+
+        PlayerState requester = room.getPlayers().get(requestUserId);
+
+        if (requester == null || !requester.isHost()) return false;
+
+        if (room.getPlayers().size() < 2) return false;
+
+        for (PlayerState player : room.getPlayers().values()) {
+
+            if (!player.isReady() && !player.isHost()) {
+                return false;
+            }
+        }
+        room.setPlaying(true);
+        return true;
+    }
+
+    /**
+     * Algoritmo de Generacion para Codigos Random usando iteracion simple alfanumerica
      */
     private String generateRandomCode(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -115,12 +150,9 @@ public class RoomService {
         for (int i = 0; i < length; i++) {
             sb.append(chars.charAt(rnd.nextInt(chars.length())));
         }
-        return sb.toString(); 
+        return sb.toString();
     }
-    
-    // ------ SECCIÓN INFERIOR PROVISIONAL DE STATS MEMORIA ------
-    
-    // Grabo o documento mi Match en el historial y guardo un string descriptivo (details).
+
     public void recordMatchResult(String userId, boolean won, String details) {
         UserStats stats = userStatsRepository.findById(userId);
         if (stats == null) {
@@ -132,21 +164,19 @@ public class RoomService {
             stats.addLoss(details);
         }
         userStatsRepository.saveOrUpdate(stats);
-        
-        // Sumar o restar monedas al jugador
+
         com.TFG1.model.User dbUser = userRepository.findByUsername(userId);
         if (dbUser != null) {
             if (won) {
                 dbUser.setCoins(dbUser.getCoins() + 15);
             } else {
-                // No permitimos saldo negativo
+
                 dbUser.setCoins(Math.max(0, dbUser.getCoins() - 15));
             }
             userRepository.update(dbUser);
         }
     }
-    
-    // Obtengo la información para mi Perfil directamente de mi diccionario en caché.
+
     public UserStats getUserStats(String userId) {
         UserStats stats = userStatsRepository.findById(userId);
         if (stats == null) {

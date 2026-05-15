@@ -7,13 +7,11 @@ import java.util.List;
 
 public class Player {
 
-    private String id; // id del jugador
-    private final String name; // Nombre del jugador
-    private final List<Die> cup; // Dados ocultos del jugador
-    private final List<Card> hand; // Cartas del jugador
-
-    // public Player() {
-    // }
+    private String id;
+    private final String name;
+    private final List<Die> cup;
+    private final List<Card> hand;
+    private boolean isBlinded;
 
     public Player(String id, String name, int initialDiceCount) {
         this.id = id;
@@ -54,5 +52,13 @@ public class Player {
 
     public List<Card> hand() {
         return hand;
+    }
+
+    public boolean isBlinded() {
+        return isBlinded;
+    }
+
+    public void setBlinded(boolean blinded) {
+        this.isBlinded = blinded;
     }
 }

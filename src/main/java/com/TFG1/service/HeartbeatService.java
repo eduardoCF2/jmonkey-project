@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Monitors player connections and triggers automatic forfeits in the
  * GameManager
- * if a player fails to ping within the specified timeout.
+ * if a player fails to ping within the specified timeout
  */
 public class HeartbeatService {
 
@@ -21,28 +21,28 @@ public class HeartbeatService {
     }
 
     /**
-     * Registers a player or updates their last seen time.
-     * 
-     * @param playerId The ID of the player pinging the server.
+     * Registers a player or updates their last seen time
+     *
+     * @param playerId The ID of the player pinging the server
      */
     public void ping(String playerId) {
         lastHeartbeats.put(playerId, System.currentTimeMillis());
     }
 
     /**
-     * Removes a player from the heartbeat tracking entirely (e.g. they officially
-     * left).
+     * Removes a player from the heartbeat tracking entirely (eg they officially
+     * left)
      */
     public void removePlayer(String playerId) {
         lastHeartbeats.remove(playerId);
     }
 
     /**
-     * Starts the monitoring thread in the background.
-     * 
-     * @param gm        The actively running GameManager.
+     * Starts the monitoring thread in the background
+     *
+     * @param gm        The actively running GameManager
      * @param timeoutMs The maximum allowed time (in ms) without a ping before
-     *                  disconnection is assumed.
+     *                  disconnection is assumed
      */
     public void startMonitoring(GameManager gm, long timeoutMs) {
         if (isRunning)
@@ -60,16 +60,14 @@ public class HeartbeatService {
                         System.out.println("[HeartbeatService] Player ID " + playerId
                                 + " ha excedido el timeout de conexion. Desconectando.");
 
-                        // Stop tracking them
                         lastHeartbeats.remove(playerId);
 
-                        // Notify the game manager to forfeit their dice
                         gm.handleDisconnect(playerId);
                     }
                 }
 
                 try {
-                    // Check every second to avoid burning CPU
+
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -78,13 +76,12 @@ public class HeartbeatService {
             }
         });
 
-        // Daemon thread so it stops when the application JVM exits.
         monitorThread.setDaemon(true);
         monitorThread.start();
     }
 
     /**
-     * Stops the background monitor.
+     * Stops the background monitor
      */
     public void stopMonitoring() {
         isRunning = false;

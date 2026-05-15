@@ -47,7 +47,6 @@ public class GameManager {
         this.lastBidder = null;
         this.skipNextTurn = false;
 
-        // Roll all dice for each active player
         for (Player p : players) {
             if (!p.isEliminated()) {
                 for (Die die : p.cup()) {
@@ -76,8 +75,6 @@ public class GameManager {
             nextTurn();
         }
     }
-
-    // --- GAMEPLAY ACTIONS ---
 
     public boolean placeBid(String playerId, Bid bid) {
         if (state != GameState.PLAYER_TURN)
@@ -124,7 +121,7 @@ public class GameManager {
         }
     }
 
-    public boolean playCard(String playerId, int cardId) {
+    public boolean playCard(String playerId, int cardId, String targetPlayerId) {
         if (state != GameState.PLAYER_TURN)
             return false;
         Player currentPlayer = players.get(currentPlayerIndex);
@@ -143,27 +140,17 @@ public class GameManager {
 
         currentPlayer.hand().remove(cardToPlay);
 
-        if (cardToPlay.type() == CardType.PALO) {
-            for (Die d : currentPlayer.cup())
-                d.roll();
-        } else if (cardToPlay.type() == CardType.TRIUNFO) {
-            skipNextTurn = true;
-        } else if (cardToPlay.type() == CardType.JOKER) {
-            int targetIdx = currentPlayerIndex;
-            do {
-                targetIdx = (targetIdx + 1) % players.size();
-            } while (players.get(targetIdx).isEliminated());
-
-            Player target = players.get(targetIdx);
-            target.loseDie();
-
-            int activePlayers = 0;
-            for (Player p : players)
-                if (!p.isEliminated())
-                    activePlayers++;
-            if (activePlayers <= 1)
-                this.state = GameState.GAME_OVER;
+        com.TFG1.core.cards.effects.CardEffectStrategy strategy = com.TFG1.core.cards.effects.CardEffectFactory.getStrategy(cardToPlay);
+        if (strategy != null) {
+            strategy.applyEffect(this, currentPlayer, cardToPlay, targetPlayerId);
         }
+
+        if (cardToPlay.type() == CardType.TRIUNFO) {
+            skipNextTurn = true;
+        }
+
+        checkGameOver();
+
         return true;
     }
 
@@ -198,14 +185,14 @@ public class GameManager {
 
         String result;
         if (actualQuantity >= expectedQuantity) {
-            // The bid was true! Doubter loses a die.
+
             doubter.loseDie();
-            currentPlayerIndex = players.indexOf(doubter); // Loser starts next round
+            currentPlayerIndex = players.indexOf(doubter);
             result = "¡Fallo de " + doubter.getName() + "! Sí había al menos " + expectedQuantity + " dados de " + specificFace + " (Había " + actualQuantity + "). Pierde un dado.";
         } else {
-            // The bid was false! Bidder loses a die.
+
             lastBidder.loseDie();
-            currentPlayerIndex = players.indexOf(lastBidder); // Loser starts next round
+            currentPlayerIndex = players.indexOf(lastBidder);
             result = "¡" + doubter.getName() + " acertó! No había " + expectedQuantity + " dados de " + specificFace + " (Solo había " + actualQuantity + "). " + lastBidder.getName() + " pierde un dado.";
         }
 
@@ -228,26 +215,20 @@ public class GameManager {
         }
     }
 
-    // --- DISCONNECT ---
-
     public void handleDisconnect(String playerId) {
         for (Player p : players) {
             if (p.getId().equals(playerId)) {
-                p.eliminateFull(); // Instantly eliminate their cup
+                p.eliminateFull();
 
-                // If it was their turn, immediately skip it
                 if (state == GameState.PLAYER_TURN && players.indexOf(p) == currentPlayerIndex) {
                     nextTurn();
                 }
 
-                // Make sure we didn't just end the game
                 checkGameOver();
                 break;
             }
         }
     }
-
-    // --- HELPERS ---
 
     private int getTotalDiceCount() {
         int count = 0;
@@ -280,9 +261,68 @@ public class GameManager {
             return null;
         for (Player p : players) {
             if (!p.isEliminated()) {
-                return p; // The last one standing
+                return p;
             }
         }
         return null;
+    }
+
+    public List<Die> getAllDiceOnTable() {
+        List<Die> all = new ArrayList<>();
+        for (Player p : players) {
+            if (!p.isEliminated()) {
+                all.addAll(p.cup());
+            }
+        }
+        return all;
+    }
+
+    public void rotateDiceRight() {
+        if (players.size() < 2) return;
+        List<Player> activePlayers = new ArrayList<>();
+        for (Player p : players) {
+            if (!p.isEliminated()) activePlayers.add(p);
+        }
+        if (activePlayers.size() < 2) return;
+
+        List<List<Die>> cupsCopy = new ArrayList<>();
+        for (Player p : activePlayers) {
+            cupsCopy.add(new ArrayList<>(p.cup()));
+        }
+
+        for (int i = 0; i < activePlayers.size(); i++) {
+            Player current = activePlayers.get(i);
+            int prevIndex = (i - 1 + activePlayers.size()) % activePlayers.size();
+            List<Die> prevCup = cupsCopy.get(prevIndex);
+
+            current.cup().clear();
+            current.cup().addAll(prevCup);
+        }
+    }
+
+    public void rerollTable() {
+        for (Player p : players) {
+            if (!p.isEliminated()) {
+                for (Die d : p.cup()) {
+                    d.roll();
+                }
+            }
+        }
+    }
+
+    public Player getPlayerById(String id) {
+        for (Player p : players) {
+            if (p.getId().equals(id)) return p;
+        }
+        return null;
+    }
+
+    public void revealDie(Player target, Die die) {
+
+        System.out.println("REVEAL: El jugador " + target.getName() + " tiene un dado con valor " + die.getValue());
+    }
+
+    public void markBlindDuelActive() {
+        System.out.println("Duelo a ciegas activado.");
     }
 }

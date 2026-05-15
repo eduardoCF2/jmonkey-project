@@ -8,24 +8,20 @@ import java.util.Date;
 
 public class JwtService {
 
-    // Fabricacion de tokens. Ponemos la contraseña maestra para poder fabricar esos
-    // tokens, acceder...
-
     private static final String SECRET_KEY = "TFG_@EDUARDO_@DAVIDSL_@DAVIDSZ";
     private static final Algorithm ALGORITHM = Algorithm.HMAC256(SECRET_KEY);
 
-    // Método para fabricar el token cuando el login es correcto
     public static String generateToken(String username) {
 
         try {
-            // Token valido por dos horas
+
             long expirationTime = System.currentTimeMillis() + (1000 * 60 * 60 * 2);
 
             return JWT.create()
-                    .withIssuer("HAY QUE RELLENARLO CUIDAO") // Quién emite el token
-                    .withClaim("username", username) // Guardamos el nombre del jugador dentro
-                    .withExpiresAt(new Date(expirationTime)) // Fecha de caducidad
-                    .sign(ALGORITHM); // Firmado matemáticamente
+                    .withIssuer("HAY QUE RELLENARLO CUIDAO")
+                    .withClaim("username", username)
+                    .withExpiresAt(new Date(expirationTime))
+                    .sign(ALGORITHM);
 
         } catch (JWTCreationException exception) {
             System.err.println("Error catastrófico al crear el TOKEN");
@@ -33,7 +29,6 @@ public class JwtService {
         }
     }
 
-    // Método para validar el token y extraer el usuario
     public static String validateToken(String token) {
         try {
             return JWT.require(ALGORITHM)

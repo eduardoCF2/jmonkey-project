@@ -4,7 +4,7 @@ public record Bid(int quantity, int value) {
 
     public static boolean isValid(Bid newBid, Bid lastBid) {
         if (lastBid == null) {
-            return true; // La primera apuesta siempre es válida
+            return true;
         }
 
         return newBid.quantity() > lastBid.quantity() ||

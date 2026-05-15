@@ -27,20 +27,17 @@ public class App extends SimpleApplication {
         try {
             HibernateUtil.getSessionFactory();
             System.out.println("Base de Datos conectada");
-            // System.out.println("Base de Datos temporalmente DESACTIVADA para poder probar
-            // la tienda.");
+
         } catch (Exception e) {
             System.err.println("ERROR: No se pudo conectar a PostgreSQL");
             e.printStackTrace();
-            // return; // Si no hay base de datos, no arrancamos nada
+
         }
 
-        // Levantar el api
         Javalin api = Javalin.create(config -> {
             config.showJavalinBanner = false;
         }).start(7071);
 
-        // Filtro de seguridad
         api.before(ctx -> {
             String path = ctx.path();
 
@@ -65,7 +62,6 @@ public class App extends SimpleApplication {
             }
         });
 
-        // Instanciar repositorios y servicios para inyectarlos en los controladores
         UserRepository userRepository = new UserRepository();
         CardRepository cardRepository = new CardRepository();
         CardRegistry cardRegistry = new CardRegistry();
@@ -73,26 +69,20 @@ public class App extends SimpleApplication {
         ShopController shopController = new ShopController(shopService, userRepository, cardRepository);
 
         com.TFG1.repository.UserStatsRepository userStatsRepository = new com.TFG1.repository.UserStatsRepository();
-        // Instancio mi servicio y controlador de salas en memoria para mi Lógica de
-        // Salas (Lobby y Matchmaking web sin BD)
-        RoomService roomService = new RoomService(userStatsRepository);
-        // Le inyecto mi servicio al controlador (Arquitectura en Capas) para consumirlo
-        // en mi Javalin
-        RoomController roomController = new RoomController(roomService);
 
-        // Endpoints
+        RoomService roomService = new RoomService(userStatsRepository);
+
+        RoomController roomController = new RoomController(roomService, cardRegistry);
+
         AuthController.registerRoutes(api);
         shopController.registerRoutes(api);
-        // Registro aquí mis endpoints de RoomController local para habilitar recibir
-        // peticiones REST a mi web
+
         roomController.registerRoutes(api);
-        
-        // Registro la pasarela de WebSockets para la partida en vivo
+
         GameWebSocketController.registerRoutes(api, roomService, cardRegistry);
-        
+
         System.out.println("API REST lista en http://localhost:7071");
 
-        // Motor grafico
         App app = new App();
         AppSettings settings = new AppSettings(true);
         settings.setTitle("GAMEGAME");
@@ -106,10 +96,9 @@ public class App extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        // Configuramos la escena 3D inicial
+
         viewPort.setBackgroundColor(ColorRGBA.DarkGray);
 
-        // El cubo azul de prueba pa ver que funciona el jmonkey
         Box b = new Box(1, 1, 1);
         Geometry geom = new Geometry("CuboPrueba", b);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");

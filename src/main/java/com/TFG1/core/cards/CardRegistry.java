@@ -46,10 +46,9 @@ public class CardRegistry {
         return cards.get(id);
     }
 
-    // Método para obtener todas las cartas de un palo en concreto (para la tienda)
     public List<Card> getCardsBySuit(Suit suit) {
         return cards.values().stream()
                 .filter(card -> card.suit() == suit)
-                .toList(); // Devuelve una lista con todas las cartas de Bastos, o Copas, etc.
+                .toList();
     }
 }

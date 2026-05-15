@@ -13,7 +13,6 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 public class I18nService {
 
-    // Mapeo
     private static final Map<String, Map<String, String>> translations = new HashMap<>();
 
     static {
@@ -68,14 +67,13 @@ public class I18nService {
     }
 
     public static String get(String lang, String key) {
-        // Español por defecto
+
         Map<String, String> langMap = translations.getOrDefault(lang, translations.get("ES"));
 
         if (langMap == null || !langMap.containsKey(key)) {
             return "[" + key + "]";
         }
 
-        // Devolvemos la traducción
         return langMap.get(key);
     }
 }

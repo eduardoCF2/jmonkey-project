@@ -9,8 +9,6 @@ public class AuthService {
 
     private final UserRepository userRepository = new UserRepository();
 
-    // Validar si un usuario existe
-
     public User authenticate(String username, String password) {
         User user = userRepository.findByUsername(username);
 
@@ -18,16 +16,14 @@ public class AuthService {
             throw new GameException("USER_NOT_FOUND");
         }
 
-        // Encriptar contraseña
         if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new GameException("ERROR_LOGIN");
         }
         return user;
     }
 
-    // Registrar un nuevo usuario
     public User register(String username, String password) {
-        // Validar si el usuario ya existe
+
         if (userRepository.existsByUsername(username)) {
             throw new GameException("USER_EXISTS_ERROR");
         }

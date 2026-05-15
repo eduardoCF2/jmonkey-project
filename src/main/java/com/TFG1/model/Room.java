@@ -4,39 +4,36 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.TFG1.core.engine.GameManager;
 
 /**
- * Representa una sala de juego multijugador privada.
- * Aquí se agrupan las características de la sala (su código público) y los jugadores que tengo presentes.
+ * Representa una sala de juego multijugador privada
+ * Aqui se agrupan las caracteristicas de la sala (su codigo publico) y los jugadores que tengo presentes
  */
 public class Room {
-    private String roomCode; // El código alfanumérico único para invitar a otras personas
-    
-    // Clave: El userId del jugador. Valor: El PlayerState con sus datos temporales en mi sala.
-    private ConcurrentHashMap<String, PlayerState> players; 
-    
-    private boolean isPlaying; // Determina si ya he cerrado admisiones e iniciado el juego o si sigo en el Lobby
-    private GameManager gameManager; // Instancia del juego para la sala
+    private String roomCode;
+
+    private ConcurrentHashMap<String, PlayerState> players;
+
+    private boolean isPlaying;
+    private GameManager gameManager;
 
     public Room(String roomCode) {
         this.roomCode = roomCode;
-        this.players = new ConcurrentHashMap<>(); // Instancio el diccionario de jugadores, vacío al inicio
-        this.isPlaying = false; // Al crearla, la pongo siempre en fase Lobby
-        this.gameManager = new GameManager(); // Cada sala tiene su propio tablero de juego
+        this.players = new ConcurrentHashMap<>();
+        this.isPlaying = false;
+        this.gameManager = new GameManager();
     }
 
-    // Método de asistencia rápida que utilizo para introducir nuevos jugadores al diccionario de mi sala
     public void addPlayer(PlayerState player) {
         players.put(player.getUserId(), player);
     }
-    
-    // --- Getters y Setters ---
+
     public String getRoomCode() { return roomCode; }
     public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
-    
+
     public ConcurrentHashMap<String, PlayerState> getPlayers() { return players; }
     public void setPlayers(ConcurrentHashMap<String, PlayerState> players) { this.players = players; }
-    
+
     public boolean isPlaying() { return isPlaying; }
     public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
-    
+
     public GameManager getGameManager() { return gameManager; }
 }
