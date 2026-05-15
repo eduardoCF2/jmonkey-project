@@ -26,9 +26,9 @@ import com.TFG1.core.cards.Card;
 import com.TFG1.core.cards.CardRegistry;
 
 /**
- * Controlador para la Pasarela de WebSockets.
+ * Controlador para la Pasarela de WebSockets
  * Maneja las conexiones en tiempo real de los jugadores durante el transcurso
- * de una partida.
+ * de una partida
  */
 
 public class GameWebSocketController {
@@ -40,33 +40,27 @@ public class GameWebSocketController {
                                           com.TFG1.repository.CardRepository cardRepository, 
                                           com.TFG1.repository.UserRepository userRepository) {
 
-        // El endpoint será /ws/game/{code}?token=XYZ
         api.ws("/ws/game/{code}", ws -> {
 
-            // 1. Cuando un jugador intenta conectarse a la sala
             ws.onConnect(ctx -> {
                 String roomCode = ctx.pathParam("code");
                 String token = ctx.queryParam("token");
 
                 try {
-                    // Evita que el servidor se cuelgue
+
                     ctx.session.setIdleTimeout(java.time.Duration.ofHours(1));
 
                     if (token == null)
                         throw new RuntimeException("No token present");
                     String username = JwtService.validateToken(token);
 
-                    // Autorizacion
-
                     ctx.attribute("username", username);
 
-                    // Metemos su tubo de comunicación en la lista de nuestra sala
                     roomConnections.putIfAbsent(roomCode, ConcurrentHashMap.newKeySet());
                     roomConnections.get(roomCode).add(ctx);
 
                     System.out.println("[WS] Jugador " + username + " conectado a sala " + roomCode);
 
-                    // Avisamos a todos los de la sala (broadcast) que ha entrado alguien
                     broadcastMessage(roomCode, new WsMessage("SYSTEM", username + " se ha unido a la partida."));
 
                 } catch (Exception e) {
@@ -74,7 +68,6 @@ public class GameWebSocketController {
                 }
             });
 
-            // Espera un mensaje
             ws.onMessage(ctx -> {
                 String roomCode = ctx.pathParam("code");
                 String username = ctx.attribute("username");
@@ -92,9 +85,30 @@ public class GameWebSocketController {
                     switch (msg.getType()) {
                         case "START_GAME":
                             for (PlayerState ps : room.getPlayers().values()) {
-                                gm.addPlayer(new Player(ps.getUserId(), ps.getUserId(), 5));
+                                Player p = new Player(ps.getUserId(), ps.getUserId(), 5);
+                                gm.addPlayer(p);
+
+                                if (ps.getSelectedCards() != null && !ps.getSelectedCards().isEmpty()) {
+                                    for (Integer cardId : ps.getSelectedCards()) {
+                                        Card c = cardRegistry.getCardById(cardId);
+                                        if (c != null) {
+                                            p.hand().add(c);
+                                        }
+                                    }
+                                }
                             }
-                            gm.dealCards(cardRegistry);
+
+                            boolean needsRandomCards = false;
+                            for (Player p : gm.getPlayers()) {
+                                if (p.hand().isEmpty()) {
+                                    needsRandomCards = true;
+                                    break;
+                                }
+                            }
+                            if (needsRandomCards) {
+                                gm.dealCards(cardRegistry);
+                            }
+
                             gm.startGame();
 
                             broadcastMessage(roomCode, new WsMessage("GAME_STARTED", "¡Comienza el juego de Dudo!"));
@@ -125,16 +139,16 @@ public class GameWebSocketController {
                             break;
 
                         case "CALL_DOUBT":
-                            boolean startedDoubt = gm.callDoubt(username);
-                            if (startedDoubt) {
+                            String doubtResult = gm.callDoubt(username);
+                            if (doubtResult != null) {
                                 broadcastMessage(roomCode,
-                                        new WsMessage("DOUBT_RESULT", username + " HA DUDADO. Se resuelve la ronda."));
+                                        new WsMessage("DOUBT_RESULT", doubtResult));
 
                                 if (gm.getState() == GameState.GAME_OVER) {
                                     Player winner = gm.getWinner();
                                     String winnerName = (winner != null) ? winner.getName() : "Nadie";
                                     broadcastMessage(roomCode,
-                                            new WsMessage("GAME_OVER", "El ganador es: " + winnerName));
+                                            new WsMessage("GAME_OVER", doubtResult + "\nEl ganador es: " + winnerName));
                                     try {
                                         for (Player p : gm.getPlayers()) {
                                             boolean won = p.equals(winner);
@@ -143,6 +157,8 @@ public class GameWebSocketController {
                                     } catch (Exception e) {
                                         System.out.println("No se pudo guardar historial en DB: " + e.getMessage());
                                     }
+
+                                    roomService.closeRoom(roomCode);
                                 } else {
                                     sendSecretDiceToPlayers(roomCode, gm);
                                     broadcastTableState(roomCode, gm);
@@ -161,10 +177,11 @@ public class GameWebSocketController {
 
                         case "PLAY_CARD":
                             if (msg.getPayload() != null) {
-                                Map<String, Integer> map = (Map<String, Integer>) msg.getPayload();
-                                int cardId = map.get("cardId");
+                                Map<String, Object> map = (Map<String, Object>) msg.getPayload();
+                                int cardId = (Integer) map.get("cardId");
+                                String targetPlayerId = (String) map.get("targetPlayerId");
 
-                                boolean success = gm.playCard(username, cardId);
+                                boolean success = gm.playCard(username, cardId, targetPlayerId);
                                 if (success) {
                                     Card playedCard = cardRegistry.getCardById(cardId);
                                     String effectMsg = username + " jugó " + playedCard.name() + ".";
@@ -224,7 +241,6 @@ public class GameWebSocketController {
                 }
             });
 
-            // 3. Cuando un jugador cierra el juego o se le va el internet
             ws.onClose(ctx -> {
                 String roomCode = ctx.pathParam("code");
                 String username = ctx.attribute("username");
@@ -274,7 +290,7 @@ public class GameWebSocketController {
             try {
                 jsonFinal = mapper.writeValueAsString(message);
                 for (WsContext player : playersInRoom) {
-                    // Asegurarnos que la tubería siga abierta antes de disparar el mensaje
+
                     if (player.session.isOpen()) {
                         player.send(jsonFinal);
                     }
@@ -295,8 +311,15 @@ public class GameWebSocketController {
             for (Player p : gm.getPlayers()) {
                 if (p.getId().equals(ctxUser)) {
                     List<Integer> diceVals = new ArrayList<>();
-                    for (Die d : p.cup()) {
-                        diceVals.add(d.getValue());
+                    if (p.isBlinded()) {
+
+                        for (int i = 0; i < p.cup().size(); i++) {
+                            diceVals.add(-1);
+                        }
+                    } else {
+                        for (Die d : p.cup()) {
+                            diceVals.add(d.getValue());
+                        }
                     }
                     WsMessage secretMsg = new WsMessage("SECRET_DICE", diceVals);
                     try {
@@ -338,7 +361,6 @@ public class GameWebSocketController {
     private static void broadcastTableState(String roomCode, GameManager gm) {
         Map<String, Object> stateInfo = new HashMap<>();
 
-        // Player states
         List<Map<String, Object>> playersInfo = new ArrayList<>();
         for (Player p : gm.getPlayers()) {
             Map<String, Object> pInfo = new HashMap<>();
@@ -349,7 +371,6 @@ public class GameWebSocketController {
         }
         stateInfo.put("players", playersInfo);
 
-        // Current bid
         if (gm.getCurrentBid() != null) {
             Map<String, Integer> bidInfo = new HashMap<>();
             bidInfo.put("quantity", gm.getCurrentBid().quantity());

@@ -16,7 +16,7 @@ public class CardRepository {
             if (transaction != null)
                 transaction.rollback();
             System.err.println("Error al guardar UserCard: " + e.getMessage());
-            throw e; 
+            throw e;
         }
     }
 

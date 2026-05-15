@@ -13,7 +13,6 @@ public class ConsoleGame {
     public static void main(String[] args) {
         GameManager gm = new GameManager();
 
-        // Creamos algunos jugadores de prueba
         Player p1 = new Player("1", "Edu", 5);
         Player p2 = new Player("2", "Sanz", 5);
         Player p3 = new Player("3", "Soler", 5);
@@ -29,10 +28,8 @@ public class ConsoleGame {
 
             Player currentPlayer = gm.getCurrentPlayer();
 
-            // Print status
             System.out.println("\n--- TURNO DE " + currentPlayer.getName().toUpperCase() + " ---");
 
-            // Mostrar la apuesta actual si existe
             Bid currentBid = gm.getCurrentBid();
             if (currentBid == null) {
                 System.out.println("Mesa vacia. Eres el primero en apostar");
@@ -41,7 +38,6 @@ public class ConsoleGame {
                         + currentBid.value());
             }
 
-            // Mostrar los dados secretos del jugador actual
             System.out.print("Tus dados ocultos son: [");
             for (int i = 0; i < currentPlayer.cup().size(); i++) {
                 System.out.print(currentPlayer.cup().get(i).getValue());
@@ -92,7 +88,6 @@ public class ConsoleGame {
                 System.out.println("\n[!] " + currentPlayer.getName() + " HA DUDADO!");
                 System.out.println("Vamos a contar los dados de todos...");
 
-                // Mostrar los dados de todos para ver por que se gano/perdio
                 Player[] players = { p1, p2, p3 };
                 int actualCount = 0;
                 for (Player p : players) {
@@ -121,7 +116,6 @@ public class ConsoleGame {
                 gm.callDoubt(currentPlayer.getId());
                 System.out.println("--------------------------------------");
 
-                // Check if eliminated
                 for (Player p : players) {
                     System.out.println(p.getName() + " tiene " + p.cup().size() + " dados.");
                 }

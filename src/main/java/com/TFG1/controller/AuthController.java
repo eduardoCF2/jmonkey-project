@@ -11,7 +11,6 @@ import io.javalin.http.Context;
 
 public class AuthController {
 
-    // Uso de DTO's para leer los JSON
     public record LoginRequest(String username, String password) {
     }
 
@@ -20,11 +19,9 @@ public class AuthController {
 
     public static void registerRoutes(Javalin api) {
 
-        // ENDPOINT PARA INICIAR SESION
-
         api.post("/api/login", ctx -> {
             try {
-                // Lee el JSON del cliente
+
                 LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
 
                 if (req.username() == null || req.password() == null) {
@@ -32,11 +29,9 @@ public class AuthController {
                     throw new GameException("ERROR_INVALID_DATA");
                 }
 
-                // LLamada a la base de datos
                 AuthService authService = new AuthService();
                 User loggedInUser = authService.authenticate(req.username(), req.password());
 
-                // CODIGO 200 EXITO
                 String lang = getLanguage(ctx);
                 String successMsg = I18nService.get(lang, "CORRECT_LOGIN");
 
@@ -52,21 +47,17 @@ public class AuthController {
             }
         });
 
-        // Endpoint para registrarse
-
         api.post("/api/register", ctx -> {
             try {
-                // Convertir el JSON de la peticion a nuestro objeto Java
+
                 RegisterRequest req = ctx.bodyAsClass(RegisterRequest.class);
 
-                // Validacion básica de nulos
                 if (req.username() == null || req.password() == null || req.username().isBlank()
                         || req.password().trim().isEmpty()) {
                     ctx.status(400);
                     throw new GameException("ERROR_INVALID_DATA");
                 }
 
-                // LLamada al servicio (comprobacion real que hereda de service...)
                 AuthService authService = new AuthService();
                 User newUser = authService.register(req.username(), req.password());
 
@@ -77,8 +68,6 @@ public class AuthController {
 
             } catch (GameException e) {
 
-                // Lanza excepcion, ya sea un 400 0 401 asi q
-
                 handleGameException(e, ctx);
 
             } catch (Exception e) {
@@ -86,23 +75,43 @@ public class AuthController {
                 ctx.status(500).json("{ \"error\": \"INTERNAL_SERVER_ERROR\" }");
             }
         });
+
+        api.get("/api/profile", ctx -> {
+            try {
+                String authHeader = ctx.header("Authorization");
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                    ctx.status(401).json("{ \"error\": \"No autorizado\" }");
+                    return;
+                }
+                String token = authHeader.substring(7);
+                String username = com.TFG1.service.JwtService.validateToken(token);
+                if (username == null) {
+                    ctx.status(401).json("{ \"error\": \"Token inválido\" }");
+                    return;
+                }
+                com.TFG1.repository.UserRepository userRepo = new com.TFG1.repository.UserRepository();
+                User user = userRepo.findByUsername(username);
+                if (user == null) {
+                    ctx.status(404).json("{ \"error\": \"Usuario no encontrado\" }");
+                    return;
+                }
+                ctx.status(200).json("{ \"username\": \"" + user.getUsername() + "\", \"coins\": " + user.getCoins() + " }");
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).json("{ \"error\": \"INTERNAL_SERVER_ERROR\" }");
+            }
+        });
     }
 
-    // METODOS AUXILIARES OJO
-
-    // Lee la cabecera HTTP para saber el idioma del jugador
     private static String getLanguage(Context ctx) {
         String lang = ctx.header("Accept-Language");
         return (lang != null && lang.length() >= 2) ? lang.substring(0, 2).toUpperCase() : "ES";
     }
 
-    // Se encarga de traducir la GameException y enviarla
     private static void handleGameException(GameException e, Context ctx) {
         String lang = getLanguage(ctx);
         String translatedError = I18nService.get(lang, e.getErrorKey());
 
-        // Si no le ponemos un codigo de estado especifico arriba, le ponemos 400 por
-        // defecto
         if (ctx.statusCode() == 0 || ctx.statusCode() == 200) {
             ctx.status(400);
         }
@@ -111,4 +120,3 @@ public class AuthController {
     }
 }
 
-// REVISAR POR QUE SALE DE GEMINI PERO ES UNA FUMADA

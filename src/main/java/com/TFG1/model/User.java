@@ -30,7 +30,7 @@ public class User {
     public User(String username, String password) {
         this.username = username;
         this.password = password;
-        this.coins = 100; // valor inicial en el constructor para probar, posteriormente cambiar
+        this.coins = 100;
     }
 
     public int getId() {

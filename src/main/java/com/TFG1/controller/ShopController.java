@@ -14,7 +14,6 @@ import java.util.List;
 
 public class ShopController {
 
-    // Mock Database for shop items
     public record ShopItem(String id, String nameKey, int price) {
     }
 
@@ -43,12 +42,10 @@ public class ShopController {
 
     public void registerRoutes(Javalin api) {
 
-        // Endpoint para ver los artículos
         api.get("/api/shop/items", ctx -> {
             ctx.status(200).json(CATALOGUE);
         });
 
-        // Endpoint para comprar un artículo
         api.post("/api/shop/buy", ctx -> {
             try {
                 BuyRequest req = ctx.bodyAsClass(BuyRequest.class);
@@ -58,7 +55,6 @@ public class ShopController {
                     throw new GameException("ERROR_INVALID_DATA");
                 }
 
-                // 1. Buscar al item
                 ShopItem itemToBuy = CATALOGUE.stream()
                         .filter(item -> item.id().equals(req.itemId()))
                         .findFirst()
@@ -69,10 +65,6 @@ public class ShopController {
                     throw new GameException("ERROR_ITEM_NOT_FOUND");
                 }
 
-                // OJO: Por ahora no tenemos `findById` en UserRepository,
-                // idealmente deberiamos añadirlo para buscar por ID en vez de nombre.
-                // Lo simulamos temporalmente con una nueva excepcion si el repositorio no
-                // encuentra al usuario.
                 User buyer = userRepository.findById(req.userId());
 
                 if (buyer == null) {
@@ -80,13 +72,11 @@ public class ShopController {
                     throw new GameException("USER_NOT_FOUND");
                 }
 
-                // 2. Comprobar monedas
                 if (buyer.getCoins() < itemToBuy.price()) {
                     ctx.status(400);
                     throw new GameException("ERROR_INSUFFICIENT_FUNDS");
                 }
 
-                // 3. Efectuar compra
                 buyer.setCoins(buyer.getCoins() - itemToBuy.price());
                 userRepository.update(buyer);
 
@@ -104,7 +94,6 @@ public class ShopController {
             }
         });
 
-        // Endpoints de cartas
         api.get("/api/shop/cards", ctx -> {
             ctx.status(200).json(shopService.getDailyShop());
         });
@@ -148,7 +137,7 @@ public class ShopController {
                     ctx.status(200).json("{ \"message\": \"" + successMsg + "\", \"newBalance\": " + buyer.getCoins() + " }");
                 } else {
                     ctx.status(400);
-                    throw new GameException("ERROR_INSUFFICIENT_FUNDS"); // Maybe make a new exception key for this later
+                    throw new GameException("ERROR_INSUFFICIENT_FUNDS");
                 }
             } catch (GameException e) {
                 handleGameException(e, ctx);
@@ -186,9 +175,6 @@ public class ShopController {
             ctx.status(200).json(realCards);
         });
     }
-
-    // METODOS AUXILIARES: se reutilizan del AuthController, en un código "limpio"
-    // irían a un base class o Helper.
 
     private static String getLanguage(Context ctx) {
         String lang = ctx.header("Accept-Language");

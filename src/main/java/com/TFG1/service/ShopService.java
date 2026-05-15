@@ -17,7 +17,6 @@ public class ShopService {
     private final CardRegistry cardRegistry;
     private final Random random;
 
-    // Aquí guardaremos las 5 cartas de la tienda de hoy
     private List<Card> dailyShop;
 
     public ShopService(CardRegistry cardRegistry) {
@@ -46,6 +45,7 @@ public class ShopService {
         for (int i = 0; i < 5; i++) {
             Suit originSuit = rollForSuitRarity(seededRandom);
             List<Card> possibleCards = cardRegistry.getCardsBySuit(originSuit);
+
             if (!possibleCards.isEmpty()) {
                 int randomIndex = seededRandom.nextInt(possibleCards.size());
                 dailyShop.add(possibleCards.get(randomIndex));
@@ -72,22 +72,23 @@ public class ShopService {
         else if (roll <= 95) {
             return Suit.ESPADAS;
         } 
+
         else {
             return Suit.OROS;
         }
     }
-    
     // Método para comprar una carta
     public boolean buyCard(User user, int cardId, UserRepository userRepo, CardRepository cardRepo) {
         refreshShopIfNeeded(); // Asegurar que trabajamos con la tienda de hoy
         
         // 1. Validar que la carta que pide esté realmente a la venta HOY
+
         boolean isOnSale = dailyShop.stream().anyMatch(c -> c.id() == cardId);
         if (!isOnSale) {
             System.out.println("La carta " + cardId + " no está a la venta hoy.");
             return false;
         }
-        // 2. Definir un precio dinámico
+
         Card cardToBuy = dailyShop.stream().filter(c -> c.id() == cardId).findFirst().get();
         int price = calculatePrice(cardToBuy);
         
@@ -108,9 +109,10 @@ public class ShopService {
             user.setCoins(user.getCoins() - price);
             userRepo.update(user); 
             // 6. Entregar la carta guardándola en la tabla UserCard
+
             UserCard newInventoryCard = new UserCard(user, cardId);
             cardRepo.save(newInventoryCard);
-            
+
             System.out.println("¡Compra exitosa! " + user.getUsername() + " ha comprado la carta " + cardId);
             return true;
         } else {
@@ -119,7 +121,6 @@ public class ShopService {
         }
     }
 
-    // Método que calcula el precio de una carta en base a su rareza y su número
     private int calculatePrice(Card card) {
         return card.price();
     }

@@ -7,10 +7,6 @@ import org.hibernate.query.Query;
 
 public class UserRepository {
 
-    // Busca un usuario por su nombre exacto.
-
-    // @return
-
     public User findByUsername(String username) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<User> query = session.createQuery("FROM User WHERE username = :name", User.class);
@@ -30,8 +26,6 @@ public class UserRepository {
             return null;
         }
     }
-
-    // Evitamos duplicados
 
     public boolean existsByUsername(String username) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
@@ -57,11 +51,9 @@ public class UserRepository {
             if (transaction != null)
                 transaction.rollback();
             System.err.println("Error al guardar usuario: " + e.getMessage());
-            throw e; // Relanzamos para que el Service sepa que algo fallo
+            throw e;
         }
     }
-
-    // ACtualizar datos del usuario
 
     public void update(User user) {
         Transaction transaction = null;
