@@ -8,6 +8,7 @@ public class PlayerState {
     private String userId;   // El ID o Nombre de Usuario real del jugador
     private boolean isHost;  // Indica si este jugador es el creador de la sala (quien tiene permisos para iniciarla)
     private boolean isReady; // Indica si el jugador ha marcado que está "Listo" para empezar (RF-07)
+    private java.util.List<Integer> selectedCards = new java.util.ArrayList<>();
 
     // Constructor vacío por seguridad
     public PlayerState() {}
@@ -28,4 +29,7 @@ public class PlayerState {
     
     public boolean isReady() { return isReady; }
     public void setReady(boolean isReady) { this.isReady = isReady; }
+
+    public java.util.List<Integer> getSelectedCards() { return selectedCards; }
+    public void setSelectedCards(java.util.List<Integer> selectedCards) { this.selectedCards = selectedCards; }
 }

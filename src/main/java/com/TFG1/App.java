@@ -88,7 +88,7 @@ public class App extends SimpleApplication {
         roomController.registerRoutes(api);
         
         // Registro la pasarela de WebSockets para la partida en vivo
-        GameWebSocketController.registerRoutes(api, roomService, cardRegistry);
+        GameWebSocketController.registerRoutes(api, roomService, cardRegistry, cardRepository, userRepository);
         
         System.out.println("API REST lista en http://localhost:7071");
 

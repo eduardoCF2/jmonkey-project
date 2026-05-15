@@ -20,6 +20,7 @@ public class GameManager {
     private Player lastBidder;
     private final DiceLogic diceLogic;
     private boolean skipNextTurn = false;
+    private boolean hasPlayedCardThisTurn = false; // Nueva restricción
     private final Random rand = new Random();
 
     public GameManager() {
@@ -46,6 +47,7 @@ public class GameManager {
         this.currentBid = null;
         this.lastBidder = null;
         this.skipNextTurn = false;
+        this.hasPlayedCardThisTurn = false; // Reset al empezar ronda
 
         // Roll all dice for each active player
         for (Player p : players) {
@@ -69,6 +71,7 @@ public class GameManager {
             skipNextTurn = false;
             nextTurn();
         }
+        this.hasPlayedCardThisTurn = false; // Reset al pasar el turno a otro
     }
 
     private void ensureValidTurn() {
@@ -114,7 +117,9 @@ public class GameManager {
         }
 
         for (Player p : players) {
-            p.hand().clear();
+            // Si el jugador ya tiene cartas en mano (las que pusimos en START_GAME desde el Lobby), NO las sobreescribimos
+            if (!p.hand().isEmpty()) continue;
+
             if (!allTriunfos.isEmpty())
                 p.hand().add(allTriunfos.get(rand.nextInt(allTriunfos.size())));
             if (!allPalos.isEmpty())
@@ -131,6 +136,9 @@ public class GameManager {
         if (!currentPlayer.getId().equals(playerId))
             return false;
 
+        if (hasPlayedCardThisTurn)
+            return false;
+
         Card cardToPlay = null;
         for (Card c : currentPlayer.hand()) {
             if (c.id() == cardId) {
@@ -142,6 +150,7 @@ public class GameManager {
             return false;
 
         currentPlayer.hand().remove(cardToPlay);
+        hasPlayedCardThisTurn = true; // Marcamos que ya ha usado su carta de este turno
 
         if (cardToPlay.type() == CardType.PALO) {
             for (Die d : currentPlayer.cup())

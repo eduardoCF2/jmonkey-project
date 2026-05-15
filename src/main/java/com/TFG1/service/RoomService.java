@@ -69,6 +69,13 @@ public class RoomService {
         }
     }
 
+    public void setSelectedCards(String roomCode, String userId, java.util.List<Integer> cardIds) {
+        Room room = activeRooms.get(roomCode);
+        if (room != null && room.getPlayers().containsKey(userId)) {
+            room.getPlayers().get(userId).setSelectedCards(cardIds);
+        }
+    }
+
     /**
      * Se habilita el inicio solo cuando el Host avisa. A su vez valido que TODOS respondan 'Ready/isReady' a true.
      */

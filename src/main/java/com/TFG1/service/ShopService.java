@@ -24,60 +24,62 @@ public class ShopService {
         this.cardRegistry = cardRegistry;
         this.random = new Random();
         this.dailyShop = new ArrayList<>();
-        
-        // Al arrancar el servicio por primera vez, generamos la tienda
-        refreshShop();
     }
 
     // Método que devuelve las cartas que están a la venta hoy
+    public CardRegistry getCardRegistry() {
+        return cardRegistry;
+    }
+
     public List<Card> getDailyShop() {
+        refreshShopIfNeeded();
         return dailyShop;
     }
 
-    // Lógica principal: Rellenar la tienda con 5 cartas nuevas basadas en probabilidad
-    public void refreshShop() {
-        dailyShop.clear(); // Limpiamos la tienda anterior
-
-        // Queremos generar exactamente 5 cartas (variable a posterior pueden ser más)
+    private void refreshShopIfNeeded() {
+        long currentDay = java.time.LocalDate.now().toEpochDay();
+        
+        // Usamos el día como semilla para que sea igual para todos durante 24h
+        Random seededRandom = new Random(currentDay);
+        
+        dailyShop.clear();
         for (int i = 0; i < 5; i++) {
-            Suit originSuit = rollForSuitRarity();
-            
-            // Le pedimos al CardRegistry TODAS las cartas de esa rareza
+            Suit originSuit = rollForSuitRarity(seededRandom);
             List<Card> possibleCards = cardRegistry.getCardsBySuit(originSuit);
-            
-            // Cogemos una al azar de entre ellas (si hay alguna)
             if (!possibleCards.isEmpty()) {
-                int randomIndex = random.nextInt(possibleCards.size());
+                int randomIndex = seededRandom.nextInt(possibleCards.size());
                 dailyShop.add(possibleCards.get(randomIndex));
             }
         }
-        System.out.println("La tienda se ha refrescado con " + dailyShop.size() + " cartas.");
+    }
+
+    public long getSecondsUntilRefresh() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay();
+        return java.time.Duration.between(now, nextMidnight).getSeconds();
     }
 
     // La "Ruleta": Un número del 1 al 100 para ver qué rareza (Palo) nos toca
-    private Suit rollForSuitRarity() {
-        int roll = random.nextInt(100) + 1; // Número aleatorio de 1 a 100
+    private Suit rollForSuitRarity(Random r) {
+        int roll = r.nextInt(100) + 1; 
 
-        // 50% de probabilidad para Bastos (Comunidad inicial, la más cutre)
         if (roll <= 50) {
             return Suit.BASTOS;
         } 
-        // 30% de probabilidad para Copas (Poco común)
         else if (roll <= 80) {
             return Suit.COPAS;
         } 
-        // 15% de probabilidad para Espadas (Rara)
         else if (roll <= 95) {
             return Suit.ESPADAS;
         } 
-        // 5% de probabilidad para Oros (Legendaria, la joya de la corona)
         else {
             return Suit.OROS;
         }
     }
     
-    //Método para comprar una carta
+    // Método para comprar una carta
     public boolean buyCard(User user, int cardId, UserRepository userRepo, CardRepository cardRepo) {
+        refreshShopIfNeeded(); // Asegurar que trabajamos con la tienda de hoy
         
         // 1. Validar que la carta que pide esté realmente a la venta HOY
         boolean isOnSale = dailyShop.stream().anyMatch(c -> c.id() == cardId);
@@ -89,13 +91,23 @@ public class ShopService {
         Card cardToBuy = dailyShop.stream().filter(c -> c.id() == cardId).findFirst().get();
         int price = calculatePrice(cardToBuy);
         
-        // 3. Comprobar si tiene pasta suficiente
+        // 3. Comprobar si ya tiene la carta (si no es consumible)
+        if (!cardToBuy.isConsumable()) {
+            java.util.List<UserCard> owned = cardRepo.findByUserId(user.getId());
+            boolean alreadyOwned = owned.stream().anyMatch(uc -> uc.getCardId() == cardId);
+            if (alreadyOwned) {
+                System.out.println("Error: El usuario ya posee esta carta no consumible.");
+                return false;
+            }
+        }
+
+        // 4. Comprobar si tiene pasta suficiente
         if (user.getCoins() >= price) {
             
-            // 4. Cobrar la carta
+            // 5. Cobrar la carta
             user.setCoins(user.getCoins() - price);
             userRepo.update(user); 
-            // 5. Entregar la carta guardándola en la tabla UserCard
+            // 6. Entregar la carta guardándola en la tabla UserCard
             UserCard newInventoryCard = new UserCard(user, cardId);
             cardRepo.save(newInventoryCard);
             
@@ -109,29 +121,6 @@ public class ShopService {
 
     // Método que calcula el precio de una carta en base a su rareza y su número
     private int calculatePrice(Card card) {
-        int basePrice = 0;
-        
-        // 1. Primero el precio base por RAREZA (Palo)
-        switch (card.suit()) {
-            case BASTOS:
-                basePrice = 10;
-                break;
-            case COPAS:
-                basePrice = 25;
-                break;
-            case ESPADAS:
-                basePrice = 50;
-                break;
-            case OROS:
-                basePrice = 100;
-                break;
-        }
-
-        // 2. Sumamos un plus por el VALOR / POTENCIA de la carta (número del A al Joker)
-        double multiplier = 1.0 + (card.value() * 0.05); // 1 = 1.05x, 10 = 1.5x, 15 = 1.75x
-        
-        int finalPrice = (int) (basePrice * multiplier);
-        
-        return finalPrice;
+        return card.price();
     }
 }

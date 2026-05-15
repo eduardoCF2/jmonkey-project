@@ -28,7 +28,7 @@ public class ShopController {
     public record BuyRequest(int userId, String itemId) {
     }
 
-    public record BuyCardRequest(int userId, int cardId) {
+    public record BuyCardRequest(int cardId) {
     }
 
     private final ShopService shopService;
@@ -109,16 +109,32 @@ public class ShopController {
             ctx.status(200).json(shopService.getDailyShop());
         });
 
+        api.get("/api/shop/timer", ctx -> {
+            ctx.status(200).json(java.util.Map.of("seconds", shopService.getSecondsUntilRefresh()));
+        });
+
         api.post("/api/shop/buy-card", ctx -> {
             try {
                 BuyCardRequest req = ctx.bodyAsClass(BuyCardRequest.class);
 
-                if (req.cardId() <= 0 || req.userId() <= 0) {
+                if (req.cardId() <= 0) {
                     ctx.status(400);
                     throw new GameException("ERROR_INVALID_DATA");
                 }
 
-                User buyer = userRepository.findById(req.userId());
+                String authHeader = ctx.header("Authorization");
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                    ctx.status(401).json("{ \"error\": \"No autorizado\" }");
+                    return;
+                }
+                String token = authHeader.substring(7);
+                String username = com.TFG1.service.JwtService.validateToken(token);
+                if (username == null) {
+                    ctx.status(401).json("{ \"error\": \"Token inválido\" }");
+                    return;
+                }
+
+                User buyer = userRepository.findByUsername(username);
 
                 if (buyer == null) {
                     ctx.status(404);
@@ -140,6 +156,34 @@ public class ShopController {
                 e.printStackTrace();
                 ctx.status(500).json("{ \"error\": \"INTERNAL_SERVER_ERROR\" }");
             }
+        });
+
+        api.get("/api/inventory", ctx -> {
+            String authHeader = ctx.header("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                ctx.status(401).json("{ \"error\": \"No autorizado\" }");
+                return;
+            }
+            String token = authHeader.substring(7);
+            String username = com.TFG1.service.JwtService.validateToken(token);
+            
+            User user = userRepository.findByUsername(username);
+            if (user == null) {
+                ctx.status(404).json("{ \"error\": \"Usuario no encontrado\" }");
+                return;
+            }
+
+            java.util.List<com.TFG1.model.UserCard> userCards = cardRepository.findByUserId(user.getId());
+            java.util.List<com.TFG1.core.cards.Card> realCards = new java.util.ArrayList<>();
+            
+            for (com.TFG1.model.UserCard uc : userCards) {
+                com.TFG1.core.cards.Card card = shopService.getCardRegistry().getCardById(uc.getCardId());
+                if (card != null) {
+                    realCards.add(card);
+                }
+            }
+            
+            ctx.status(200).json(realCards);
         });
     }
 

@@ -7,7 +7,9 @@ public record Card(
     @JsonProperty("name") String name, 
     @JsonProperty("suit") Suit suit, 
     @JsonProperty("type") CardType type, 
-    @JsonProperty("value") int value) {
+    @JsonProperty("value") int value,
+    @JsonProperty("isConsumable") boolean isConsumable,
+    @JsonProperty("price") int price) {
 
     // id -> identificar cartas
     // name -> nombre de la carta

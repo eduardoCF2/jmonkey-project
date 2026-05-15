@@ -90,6 +90,7 @@ public class RoomController {
                     pInfo.put("userId", p.getUserId());
                     pInfo.put("isReady", p.isReady());
                     pInfo.put("isHost", p.isHost());
+                    pInfo.put("selectedCards", p.getSelectedCards()); // Añadimos esto
                     playersMap.put(p.getUserId(), pInfo);
                 }
                 response.put("players", playersMap);
@@ -100,6 +101,14 @@ public class RoomController {
             }
         });
         
+        // ENDPOINT POST /api/rooms/{code}/cards | Seleccionar cartas para la partida
+        api.post("/api/rooms/{code}/cards", ctx -> {
+            String code = ctx.pathParam("code");
+            CardSelectionRequest req = ctx.bodyAsClass(CardSelectionRequest.class);
+            roomService.setSelectedCards(code, req.userId, req.cardIds);
+            ctx.status(200).result("Cartas seleccionadas guardadas");
+        });
+
         // ENDPOINT GET /users/{userId}/stats | Consultar mi Historial
         api.get("/users/{userId}/stats", ctx -> {
             String userId = ctx.pathParam("userId");
@@ -119,5 +128,11 @@ public class RoomController {
         public String userId;
         public boolean isReady;
         public ReadyRequest() {}
+    }
+
+    public static class CardSelectionRequest {
+        public String userId;
+        public java.util.List<Integer> cardIds;
+        public CardSelectionRequest() {}
     }
 }

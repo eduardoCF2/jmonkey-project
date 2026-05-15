@@ -36,7 +36,9 @@ public class GameWebSocketController {
     private static final Map<String, Set<WsContext>> roomConnections = new ConcurrentHashMap<>();
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static void registerRoutes(Javalin api, RoomService roomService, CardRegistry cardRegistry) {
+    public static void registerRoutes(Javalin api, RoomService roomService, CardRegistry cardRegistry, 
+                                          com.TFG1.repository.CardRepository cardRepository, 
+                                          com.TFG1.repository.UserRepository userRepository) {
 
         // El endpoint será /ws/game/{code}?token=XYZ
         api.ws("/ws/game/{code}", ws -> {
@@ -174,6 +176,19 @@ public class GameWebSocketController {
                                         effectMsg += " ¡Sabotaje! El siguiente rival pierde un dado.";
 
                                     broadcastMessage(roomCode, new WsMessage("CARD_EFFECT", effectMsg));
+
+                                    // --- LÓGICA DE CONSUMO (DB) ---
+                                    if (playedCard.isConsumable()) {
+                                        try {
+                                            com.TFG1.model.User user = userRepository.findByUsername(username);
+                                            if (user != null) {
+                                                cardRepository.deleteOneUserCard(user.getId(), cardId);
+                                                System.out.println("[DB] Carta consumible " + cardId + " eliminada para " + username);
+                                            }
+                                        } catch (Exception e) {
+                                            System.err.println("Error al consumir carta en DB: " + e.getMessage());
+                                        }
+                                    }
 
                                     if (gm.getState() == GameState.GAME_OVER) {
                                         Player winner = gm.getWinner();
