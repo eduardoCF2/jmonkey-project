@@ -89,7 +89,28 @@ redis.port=6379
 ## 📖 Documentación Complementaria
 
 *   **Manual de Juego:** [userManual.md](./userManual.md) - Explicación detallada para usuarios finales sobre reglas de las rondas, penalizaciones y descripciones de las cartas.
-*   **API y Endpoints REST:** Próximamente (o en la carpeta `/docs` si existe) con especificaciones OpenAPI/Swagger.
+## 📡 Endpoints de la API REST y WebSockets
+
+El servidor expone la siguiente API para gestionar la cuenta, la tienda y la sala de espera antes de la partida. Todos los endpoints (excepto login/register) requieren cabecera `Authorization: Bearer <JWT>`.
+
+### Autenticación (`/api`)
+*   `POST /api/register` - Registro de un nuevo usuario.
+*   `POST /api/login` - Inicio de sesión (Devuelve Token JWT).
+*   `GET /api/profile` - Obtener datos del perfil activo.
+
+### Tienda e Inventario (`/api/shop`)
+*   `GET /api/shop/cards` - Lista las cartas disponibles en la tienda y sus precios.
+*   `POST /api/shop/buy-card` - Compra de una carta gastando oro.
+
+### Salas y Lobby (`/api/rooms`)
+*   `POST /api/rooms` - Crea una nueva sala (Devuelve el código de 6 caracteres).
+*   `POST /api/rooms/{code}/join` - Unirse a una sala existente.
+*   `POST /api/rooms/{code}/cards` - Configurar tu mazo de cartas para la partida.
+*   `PUT /api/rooms/{code}/ready` - Marcar estado como "Listo".
+*   `POST /api/rooms/{code}/start` - El Anfitrión arranca la partida.
+
+### Motor de Juego (WebSockets)
+*   `WS /ws/game/{code}` - Conexión TCP bidireccional y persistente para jugar en tiempo real. Soporta envío de JSONs con acciones como "PUJAR", "DUDAR", o "USAR_CARTA".
 
 ---
 *Trabajo de Fin de Grado (TFG) por Eduardo Cachero, David Soler, David Sanz. 2026*
