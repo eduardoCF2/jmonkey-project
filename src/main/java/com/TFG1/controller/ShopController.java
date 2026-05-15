@@ -27,7 +27,7 @@ public class ShopController {
     public record BuyRequest(int userId, String itemId) {
     }
 
-    public record BuyCardRequest(int userId, int cardId) {
+    public record BuyCardRequest(int cardId) {
     }
 
     private final ShopService shopService;
@@ -102,12 +102,24 @@ public class ShopController {
             try {
                 BuyCardRequest req = ctx.bodyAsClass(BuyCardRequest.class);
 
-                if (req.cardId() <= 0 || req.userId() <= 0) {
+                if (req.cardId() <= 0) {
                     ctx.status(400);
                     throw new GameException("ERROR_INVALID_DATA");
                 }
 
-                User buyer = userRepository.findById(req.userId());
+                String authHeader = ctx.header("Authorization");
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                    ctx.status(401).json("{ \"error\": \"No autorizado\" }");
+                    return;
+                }
+                String token = authHeader.substring(7);
+                String username = com.TFG1.service.JwtService.validateToken(token);
+                if (username == null) {
+                    ctx.status(401).json("{ \"error\": \"Token inválido\" }");
+                    return;
+                }
+
+                User buyer = userRepository.findByUsername(username);
 
                 if (buyer == null) {
                     ctx.status(404);
