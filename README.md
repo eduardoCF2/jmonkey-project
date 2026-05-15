@@ -1,104 +1,95 @@
-# 🎲 Manual de Juego: Dudo (Liar's Dice) Multijugador
+# 🎲 Dudo & Magia - Backend Game Server (TFG)
 
-Bienvenido al sistema backend de nuestro juego de mesa. Este documento detalla estrictamente el flujo de la partida estándar, cómo interactúan los jugadores y las reglas del clásico juego "Dudo" (también conocido como Mentiroso o Perudo) aplicadas a este entorno Cliente-Servidor.
+![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=java&logoColor=white)
+![Javalin](https://img.shields.io/badge/Javalin-Framework-blue?style=for-the-badge&logo=java)
+![Hibernate](https://img.shields.io/badge/Hibernate-ORM-59666C?style=for-the-badge&logo=hibernate&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
 
----
+Repositorio oficial del backend y motor lógico para el Trabajo de Fin de Grado (TFG): **Una implementación digital, multijugador y enriquecida del clásico juego de mesa "Dudo" (Liar's Dice) con mecánicas de cartas de manipulación estadística.**
 
-## 1. Fase de Lobby (Preparativos)
-
-El juego se organiza en salas privadas (*Custom Match*).
-1. **Creación de Sala:** Un jugador hace de Anfitrión (Host) creando una nueva sala. El sistema genera un código alfanumérico único de 6 caracteres.
-2. **Invitación:** El anfitrión comparte el código con sus amigos. 
-3. **Acceso:** Hasta 3 amigos más (máximo 4 jugadores por sala) pueden unirse al *lobby* utilizando dicho código.
-4. **Confirmación:** Cuando un invitado ha seleccionado su personaje y está preparado, pulsa el botón *"Estoy Listo"*.
-5. **Arranque:** Una vez todos los invitados están en estado "Listo", el anfitrión oprime el botón central de iniciar y el servidor transporta a todos a la mesa 3D virtual.
+> **📚 Nota para jugadores:** Si buscas las reglas del juego, cómo jugar o cómo funciona la tienda de cartas, por favor consulta el [Manual de Usuario (userManual.md)](./userManual.md).
 
 ---
 
-## 2. Inicio de Partida y Reparto
+## 🛠 Arquitectura y Stack Tecnológico
 
-Al arrancar, el servidor asigna **5 dados a cada jugador**. 
+Este proyecto está construido bajo una arquitectura Cliente-Servidor. Este repositorio contiene el código del **Servidor Autorizado (Authoritative Server)**, encargado de dictar la lógica del juego, manejar las conexiones en tiempo real, evitar trampas de los clientes y persistir los datos.
 
-Cada ronda, el servidor agita virtualmente todos los cubiletes. El resultado de los dados se envía **exclusivamente en secreto** a la pantalla de su respectivo dueño. 
->**Regla de oro:** Nadie conoce los dados del rival. Tu única información veraz son tus propios dados. El resto tendrás que deducirlo (o inventártelo).
-
----
-
-## 3. Lógica del Turno: Las Pujas
-
-El jugador en turno debe realizar una afirmación sobre el conjunto total de dados que hay encima de la mesa. A esto se le llama "Pujar".
-
-**Ejemplo de puja:** *"Creo que entre todos los cubiletes de la mesa hay por lo menos cuatro 3s."* (Cantidad = 4, Valor = 3).
-
-El turno pasa al jugador de la izquierda (sentido horario), el cual **está obligado** a tomar una de estas dos decisiones:
-
-### Opción A: Subir la Apuesta
-No está seguro de si su compañero miente, pero prefiere no arriesgarse a acusarlo. Debe subir la puja.
-El sistema **solo** admite pujas que sean superiores a las del jugador anterior. Solo puedes aumentarla matemáticamente:
-*   Subiendo la *Cantidad* de dados (Ej. de "cuatro 3s" a "cinco 3s").
-*   Subiendo el *Valor nominal* del dado (Ej. de "cuatro 3s" a "cuatro 5s").
-
-### Opción B: ¡Mentira! (Dudar)
-Si cree que la apuesta anterior es matemáticamente exagerada o falsa, acciona el botón **Dudar** (Dudó / Call Liar). Esto corta automáticamente la ronda actual.
+*   **Lenguaje:** Java 17+
+*   **Servidor Web y Enrutamiento REST:** [Javalin](https://javalin.io/).
+*   **Comunicaciones en Tiempo Real:** WebSockets (Gestionado nativamente por Javalin).
+*   **Persistencia y ORM:** [Hibernate](https://hibernate.org/) (Gestión de Base de Datos Relacional).
+*   **Base de Datos Principal:** PostgreSQL (Para usuarios, estadísticas e inventario).
+*   **Almacenamiento en Caché/Estados rápidos:** Redis (Ideal para manejar estados de salas y sesiones rápidas).
+*   **Seguridad y Autenticación:** JWT (JSON Web Tokens) inyectados durante el handshake HTTP de los WebSockets y validación de endpoints REST.
+*   **Logging:** Log4j 2.x (Para trazas asíncronas de eventos del motor).
 
 ---
 
-## 4. Resolución de Ronda
+## ⚙️ Características Técnicas Implementadas
 
-Cuando un jugador Duda de la apuesta de la víctima anterior, el servidor levanta los cubiletes de todos los jugadores y cuenta cuántos dados reales existen con ese valor.
-
-1. **Si el acusador tenía razón (Mentira):** En la mesa había menos dados que los apostados. El jugador que mintió recibe el castigo.
-2. **Si el acusador se equivocó (Verdad):** En la mesa había en efecto ese número exacto de dados o más. El jugador que acusó (dudó) recibe el castigo por no creer a su compañero.
-
-**El castigo:** El perdedor de un *Dudó* pierde permanentemente 1 dado físico de su cubilete.
-> El jugador que acaba de perder el dado es el encargado de abrir la nueva ronda realizando la primera puja con los dados recién lanzados.
+1.  **Motor Multijugador por WebSockets:** El servidor instanciará *Salas (Rooms)* independientes. Todas las acciones de los usuarios (pujar, dudar, tirar dados) se encolan y resuelven de forma segura en el hilo del servidor, emitiendo *broadcasts* del nuevo estado a los miembros de la sala.
+2.  **Sistema de Inventario y Economía:** Integración de una tienda mediante API RESTful que permite la compra transaccional de cartas coleccionables que se guardan en la DB mediante Hibernate.
+3.  **Patrón Strategy (Cartas):** El motor lógico del juego emplea patrones de diseño de software (como *Factory* y *Strategy*) para interpretar dinámicamente los efectos de las cartas y alterar matemáticamente las matrices de probabilidad de los dados en tiempo real.
+4.  **Autenticación Segura:** Generación y validación de tokens JWT en el inicio de sesión. Las contraseñas están hasheadas en base de datos.
+5.  **Externalización de Configuración:** Aplicación de las metodologías *12-Factor App* inyectando las dependencias externas (URLs de BD, puertos, secretos de JWT) mediante un fichero `application.properties`.
 
 ---
 
-## 5. Fin de la partida
+## 🚀 Despliegue y Ejecución (Getting Started)
 
-Cuando un jugador pierde sus últimos dados y se queda con el cubilete vacío (0 dados), **es eliminado automáticamente** de la mesa y se convierte en espectador. 
-*(Si un jugador se desconecta de la sala por pérdida de internet o abandono voluntario, sus dados son triturados y la ronda avanza saltando su turno).*
+### Requisitos Previos
+*   Java Development Kit (JDK) 17 o superior.
+*   Maven 3.8+.
+*   Instancia local o remota de **PostgreSQL** iniciada.
+*   Instancia local o remota de **Redis** iniciada (opcional dependiendo de la configuración actual del entorno).
 
-El juego finaliza inmediatamente cuando solo queda **un último superviviente** en la mesa. Las victorias y derrotas se grabarán automáticamente en el disco persistente del servidor para ser consultadas en el Perfil de Usuario posteriormente.
+### Configuración del Entorno (`application.properties`)
+
+Antes de compilar, necesitas crear o editar el archivo `application.properties` en la carpeta `src/main/resources/` con tus credenciales de entorno:
+
+```properties
+# Servidor HTTP
+server.port=7070
+
+# Configuración Hibernate / PostgreSQL
+db.url=jdbc:postgresql://localhost:5432/dudodb
+db.username=tu_usuario
+db.password=tu_contraseña
+
+# Configuración de Seguridad
+jwt.secret=CLAVE_SECRETA_PARA_GENERAR_LOS_TOKENS_HS256
+
+# Configuración Redis
+redis.host=localhost
+redis.port=6379
+```
+
+### Compilación y Ejecución
+
+1.  Clona el repositorio:
+    ```bash
+    git clone https://github.com/tu_usuario/jmonkey-project.git
+    cd jmonkey-project
+    ```
+2.  Instala las dependencias y compila con Maven:
+    ```bash
+    mvn clean install
+    ```
+3.  Ejecuta la clase principal (`App.java`):
+    ```bash
+    mvn exec:java -Dexec.mainClass="com.TFG1.App"
+    ```
+    El servidor iniciará en `http://localhost:7070`.
 
 ---
 
-## 6. Mecánicas de Cartas y Metajuego (Novedad)
+## 📖 Documentación Complementaria
 
-El juego cuenta con un sistema de cartas coleccionables basado en la baraja española que añade economía y manipulación de probabilidades a la partida. 
+*   **Manual de Juego:** [userManual.md](./userManual.md) - Explicación detallada para usuarios finales sobre reglas de las rondas, penalizaciones y descripciones de las cartas.
+*   **API y Endpoints REST:** Próximamente (o en la carpeta `/docs` si existe) con especificaciones OpenAPI/Swagger.
 
-### Tienda y Preparación del Mazo (Lobby)
-Antes de empezar a jugar, en la fase de Lobby, puedes configurar una mano de hasta 4 cartas de tu inventario. Estas cartas se clasifican por su rareza o palo, costando oro que ganas venciendo en las partidas:
-*   **Bastos (Comunes):** Gratuitas e infinitas.
-*   **Copas (Raras), Espadas (Épicas) y Oros (Legendarias):** Cuestan oro y desaparecen de tu inventario tras usarse una sola vez (*Consumibles*).
-
-El mazo que lleves a la mesa debe respetar los siguientes límites:
-- **Máximo 2 cartas de Porcentaje (del 1 al 6):** Sus valores no pueden repetirse.
-- **Máximo 1 Triunfo (10, 11 o 12).**
-- **Máximo 1 Joker.**
-
-### Efectos en la Partida
-Durante tu turno (antes de pujar o dudar), puedes jugar una carta para alterar el curso de la partida:
-
-#### 1. Cartas de Porcentaje (Números del 1 al 6)
-Al jugar una carta de este tipo, el número de la carta indicará la cara del dado que quieres potenciar. Automáticamente re-tirarás tus dados, aumentando temporalmente tus probabilidades de que salga esa cara.
-*   Bastos: +5% extra de probabilidad.
-*   Copas: +10% extra de probabilidad.
-*   Espadas: +15% extra de probabilidad.
-*   Oros: +20% extra de probabilidad.
-*(El servidor se encarga matemáticamente de re-equilibrar las otras 5 caras para mantener un total del 100%).*
-
-#### 2. Cartas Especiales y Triunfos
-Son herramientas tácticas que rompen las reglas:
-- **El Comodín (7):** Lee la mesa, detecta cuál es la cara de dado más repetida entre todos los jugadores (la *Moda*), y mágicamente voltea uno de tus dados a esa cara.
-- **Sotas de Bastos/Copas (10):** Agita la mesa completa y obliga a todos los jugadores a re-tirar todos sus dados actuales.
-- **Caballos de Espadas (11):** Te permite intercambiar uno de tus dados aleatorios con un dado aleatorio de un oponente a tu elección.
-- **Reyes de Oros (12):** Fuerza a un oponente elegido a mostrar de forma pública uno de sus dados a todos los jugadores de la mesa.
-
-#### 3. Los Jokers del Caos
-Son cartas de naturaleza impredecible. Siempre son de uso infinito.
-- **Joker de Bastos:** Hace que todos los jugadores pasen obligatoriamente un dado de su cubilete al jugador que tengan a la derecha.
-- **Joker de Copas:** ¡Caos! Todos los jugadores de la mesa vuelven a tirar inmediatamente sus dados.
-- **Joker de Espadas (Duelo a Ciegas):** Obliga a la mesa a jugar a oscuras. Tanto tú como el rival que elijas dejaréis de ver temporalmente los valores de vuestros propios dados en la pantalla (cubilete ciego).
-- **Joker de Oros:** El servidor fuerza al jugador que tenga más dados en la mesa a regalarle automáticamente uno de los suyos al jugador que menos tenga.
+---
+*Trabajo de Fin de Grado (TFG) por Eduardo Cachero, David Soler, David Sanz. 2026*
