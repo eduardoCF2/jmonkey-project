@@ -95,27 +95,6 @@ public class ShopService {
     }
 
     private int calculatePrice(Card card) {
-        int basePrice = 0;
-
-        switch (card.suit()) {
-            case BASTOS:
-                basePrice = 10;
-                break;
-            case COPAS:
-                basePrice = 25;
-                break;
-            case ESPADAS:
-                basePrice = 50;
-                break;
-            case OROS:
-                basePrice = 100;
-                break;
-        }
-
-        double multiplier = 1.0 + (card.value() * 0.05);
-
-        int finalPrice = (int) (basePrice * multiplier);
-
-        return finalPrice;
+        return card.price();
     }
 }
