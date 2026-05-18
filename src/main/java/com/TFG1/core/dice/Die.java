@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class Die {
 
-    private int value;
+    private volatile int value;
     private final Random random;
     private final double[] weights;
 
@@ -18,7 +18,7 @@ public class Die {
         roll();
     }
 
-    public void roll() {
+    public synchronized void roll() {
         double r = random.nextDouble() * 100.0;
         double cumulative = 0.0;
         for (int i = 0; i < 6; i++) {
@@ -31,17 +31,27 @@ public class Die {
         this.value = 6;
     }
 
-    public int getValue() {
+    public synchronized int getValue() {
         return this.value;
     }
 
-    public void setFace(int face) {
+    public synchronized void setFace(int face) {
         if (face >= 1 && face <= 6) {
             this.value = face;
         }
     }
 
-    public void modifyWeight(int face, double increasePercentage) {
+    public synchronized double[] getWeights() {
+        return this.weights;
+    }
+
+    public synchronized void setWeights(double[] newWeights) {
+        if (newWeights != null && newWeights.length == 6) {
+            System.arraycopy(newWeights, 0, this.weights, 0, 6);
+        }
+    }
+
+    public synchronized void modifyWeight(int face, double increasePercentage) {
         if (face < 1 || face > 6) return;
 
         int targetIndex = face - 1;

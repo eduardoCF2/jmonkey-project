@@ -351,6 +351,7 @@ public class GameWebSocketController {
         for (WsContext playerCtx : playersInRoom) {
             String ctxUser = playerCtx.attribute("username");
             for (Player p : gm.getPlayers()) {
+                System.out.println("[DEBUG WS DICE] Comparando PlayerID: '" + p.getId() + "' con CtxUser: '" + ctxUser + "'");
                 if (p.getId().equals(ctxUser)) {
                     List<Integer> diceVals = new ArrayList<>();
                     if (p.isBlinded()) {
