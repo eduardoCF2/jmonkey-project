@@ -141,6 +141,11 @@ public class GameWebSocketController {
                         case "CALL_DOUBT":
                             String doubtResult = gm.callDoubt(username);
                             if (doubtResult != null) {
+                                for (Player p : gm.getPlayers()) {
+                                    if (p.isEliminated() && !p.hand().isEmpty()) {
+                                        penalizePlayerCards(p, userRepository, cardRepository);
+                                    }
+                                }
                                 broadcastMessage(roomCode,
                                         new WsMessage("DOUBT_RESULT", doubtResult));
 
@@ -148,7 +153,7 @@ public class GameWebSocketController {
                                     Player winner = gm.getWinner();
                                     String winnerName = (winner != null) ? winner.getName() : "Nadie";
                                     broadcastMessage(roomCode,
-                                            new WsMessage("GAME_OVER", doubtResult + "\nEl ganador es: " + winnerName));
+                                            new WsMessage("GAME_OVER", doubtResult + "\n\nAVISO: La partida ha terminado. El ganador es " + winnerName + ".\nLa sala se cerrará."));
                                     try {
                                         for (Player p : gm.getPlayers()) {
                                             boolean won = p.equals(winner);
@@ -183,24 +188,53 @@ public class GameWebSocketController {
 
                                 boolean success = gm.playCard(username, cardId, targetPlayerId);
                                 if (success) {
+                                    for (Player p : gm.getPlayers()) {
+                                        if (p.isEliminated() && !p.hand().isEmpty()) {
+                                            penalizePlayerCards(p, userRepository, cardRepository);
+                                        }
+                                    }
                                     Card playedCard = cardRegistry.getCardById(cardId);
                                     String effectMsg = username + " jugó " + playedCard.name() + ".";
-                                    if (playedCard.type() == com.TFG1.core.cards.CardType.PALO)
-                                        effectMsg += " ¡Ha relanzado sus dados!";
-                                    else if (playedCard.type() == com.TFG1.core.cards.CardType.TRIUNFO)
-                                        effectMsg += " ¡Activa bandera de saltar turno enemigo!";
-                                    else if (playedCard.type() == com.TFG1.core.cards.CardType.JOKER)
-                                        effectMsg += " ¡Sabotaje! El siguiente rival pierde un dado.";
+                                    if (playedCard.type() == com.TFG1.core.cards.CardType.PALO) {
+                                        if (playedCard.value() == 7) {
+                                            effectMsg += " ¡Comodín! Uno de sus dados se convierte en el más común de la mesa.";
+                                        } else {
+                                            effectMsg += " ¡Dado pesado! Aumenta la probabilidad del " + playedCard.value() + ".";
+                                        }
+                                    } else if (playedCard.type() == com.TFG1.core.cards.CardType.TRIUNFO) {
+                                        if (playedCard.value() == 10) {
+                                            effectMsg += " ¡Terremoto! Todos los dados de la mesa se han relanzado.";
+                                        } else if (playedCard.value() == 11) {
+                                            effectMsg += " ¡Intercambio! Ha intercambiado un dado aleatorio con " + (targetPlayerId != null ? targetPlayerId : "un rival") + ".";
+                                        } else if (playedCard.value() == 12) {
+                                            effectMsg += " ¡Ojo de Rey! Ha revelado un dado de " + (targetPlayerId != null ? targetPlayerId : "un rival") + ".";
+                                        }
+                                    } else if (playedCard.type() == com.TFG1.core.cards.CardType.JOKER) {
+                                        switch (playedCard.suit()) {
+                                            case BASTOS:
+                                                effectMsg += " ¡Rotación! Todos los jugadores pasan un dado a la derecha.";
+                                                break;
+                                            case COPAS:
+                                                effectMsg += " ¡Terremoto del Caos! Todos los dados de la mesa se han relanzado.";
+                                                break;
+                                            case ESPADAS:
+                                                effectMsg += " ¡Duelo a ciegas! Se inicia un duelo a ciegas con " + (targetPlayerId != null ? targetPlayerId : "un rival") + ".";
+                                                break;
+                                            case OROS:
+                                                effectMsg += " ¡Transferencia! El jugador con más dados le da uno al que menos tiene.";
+                                                break;
+                                        }
+                                    }
 
                                     broadcastMessage(roomCode, new WsMessage("CARD_EFFECT", effectMsg));
 
                                     // --- LÓGICA DE CONSUMO (DB) ---
-                                    if (playedCard.isConsumable()) {
+                                    if (playedCard.type() == com.TFG1.core.cards.CardType.PALO) {
                                         try {
                                             com.TFG1.model.User user = userRepository.findByUsername(username);
                                             if (user != null) {
                                                 cardRepository.deleteOneUserCard(user.getId(), cardId);
-                                                System.out.println("[DB] Carta consumible " + cardId + " eliminada para " + username);
+                                                System.out.println("[DB] Carta de palo " + cardId + " eliminada para " + username);
                                             }
                                         } catch (Exception e) {
                                             System.err.println("Error al consumir carta en DB: " + e.getMessage());
@@ -211,13 +245,14 @@ public class GameWebSocketController {
                                         Player winner = gm.getWinner();
                                         String winnerName = (winner != null) ? winner.getName() : "Nadie";
                                         broadcastMessage(roomCode,
-                                                new WsMessage("GAME_OVER", "El ganador es: " + winnerName));
+                                                new WsMessage("GAME_OVER", "AVISO: La partida ha terminado. El ganador es " + winnerName + ".\nLa sala se cerrará."));
                                         try {
                                             for (Player p : gm.getPlayers())
                                                 roomService.recordMatchResult(p.getId(), p.equals(winner),
                                                         "Partida finalizada por Joker");
                                         } catch (Exception e) {
                                         }
+                                        roomService.closeRoom(roomCode);
                                     } else {
                                         sendSecretDiceToPlayers(roomCode, gm);
                                         sendSecretHandsToPlayers(roomCode, gm);
@@ -253,13 +288,19 @@ public class GameWebSocketController {
                     Room room = roomService.getRoom(roomCode);
                     if (room != null && room.isPlaying()) {
                         GameManager gm = room.getGameManager();
+
+                        Player pDisc = gm.getPlayerById(username);
+                        if (pDisc != null && !pDisc.isEliminated()) {
+                            penalizePlayerCards(pDisc, userRepository, cardRepository);
+                        }
+
                         gm.handleDisconnect(username);
 
                         if (gm.getState() == GameState.GAME_OVER) {
                             Player winner = gm.getWinner();
                             if (winner != null) {
                                 broadcastMessage(roomCode, new WsMessage("GAME_OVER",
-                                        "El ganador es: " + winner.getName() + " por desconexión"));
+                                        "AVISO: Los demás jugadores han abandonado o perdido.\nEl ganador es " + winner.getName() + ".\nLa sala se cerrará."));
                                 try {
                                     for (Player p : gm.getPlayers()) {
                                         roomService.recordMatchResult(p.getId(), p.equals(winner),
@@ -268,6 +309,7 @@ public class GameWebSocketController {
                                 } catch (Exception e) {
                                     System.out.println("No se pudo guardar historial DB: " + e.getMessage());
                                 }
+                                roomService.closeRoom(roomCode);
                             }
                         } else {
                             broadcastTableState(roomCode, gm);
@@ -381,5 +423,20 @@ public class GameWebSocketController {
         }
 
         broadcastMessage(roomCode, new WsMessage("TABLE_STATE", stateInfo));
+    }
+
+    private static void penalizePlayerCards(Player p, com.TFG1.repository.UserRepository userRepository, com.TFG1.repository.CardRepository cardRepository) {
+        try {
+            com.TFG1.model.User user = userRepository.findByUsername(p.getId());
+            if (user != null) {
+                for (Card c : p.hand()) {
+                    cardRepository.deleteOneUserCard(user.getId(), c.id());
+                    System.out.println("[DB] Jugador " + p.getId() + " penalizado. Perdió su carta: " + c.name());
+                }
+                p.hand().clear();
+            }
+        } catch (Exception e) {
+            System.err.println("Error al penalizar jugador (perder cartas): " + e.getMessage());
+        }
     }
 }
