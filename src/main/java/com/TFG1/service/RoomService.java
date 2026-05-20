@@ -73,6 +73,13 @@ public class RoomService {
         }
     }
 
+    public void setSelectedCards(String roomCode, String userId, java.util.List<Integer> cardIds) {
+        Room room = activeRooms.get(roomCode);
+        if (room != null && room.getPlayers().containsKey(userId)) {
+            room.getPlayers().get(userId).setSelectedCards(cardIds);
+        }
+    }
+
     /**
      * Guarda la seleccion de cartas del jugador (Shop/Deck Builder)
      */
