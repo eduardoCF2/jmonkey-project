@@ -20,11 +20,11 @@ public class CardEffectFactory {
                 break;
 
             case TRIUNFO:
-                if (card.value() == 10 && (card.suit() == com.TFG1.core.cards.Suit.BASTOS || card.suit() == com.TFG1.core.cards.Suit.COPAS)) {
+                if (card.value() == 10) {
                     return new TriumphEffects.SotaStrategy();
-                } else if (card.value() == 11 && card.suit() == com.TFG1.core.cards.Suit.ESPADAS) {
+                } else if (card.value() == 11) {
                     return new TriumphEffects.CaballoStrategy();
-                } else if (card.value() == 12 && card.suit() == com.TFG1.core.cards.Suit.OROS) {
+                } else if (card.value() == 12) {
                     return new TriumphEffects.ReyStrategy();
                 }
                 break;

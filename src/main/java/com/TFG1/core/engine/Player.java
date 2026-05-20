@@ -11,6 +11,7 @@ public class Player {
     private final String name;
     private final List<Die> cup;
     private final List<Card> hand;
+    private final List<Integer> cardsToLoseOnDefeat;
     private boolean isBlinded;
 
     public Player(String id, String name, int initialDiceCount) {
@@ -18,6 +19,7 @@ public class Player {
         this.name = name;
         this.cup = new ArrayList<>();
         this.hand = new ArrayList<>();
+        this.cardsToLoseOnDefeat = new ArrayList<>();
 
         for (int i = 0; i < initialDiceCount; i++) {
             this.cup.add(new Die());
@@ -52,6 +54,10 @@ public class Player {
 
     public List<Card> hand() {
         return hand;
+    }
+
+    public List<Integer> getCardsToLoseOnDefeat() {
+        return cardsToLoseOnDefeat;
     }
 
     public boolean isBlinded() {

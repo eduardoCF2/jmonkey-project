@@ -5,9 +5,9 @@ package com.TFG1.model;
  * Sirve para saber variables concretas que solo me importan mientras el jugador esta en el Lobby de mi sala
  */
 public class PlayerState {
-    private String userId;
-    private boolean isHost;
-    private boolean isReady;
+    private String userId;   // El ID o Nombre de Usuario real del jugador
+    private boolean isHost;  // Indica si este jugador es el creador de la sala (quien tiene permisos para iniciarla)
+    private boolean isReady; // Indica si el jugador ha marcado que está "Listo" para empezar (RF-07)
     private java.util.List<Integer> selectedCards = new java.util.ArrayList<>();
 
     public PlayerState() {}

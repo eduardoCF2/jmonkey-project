@@ -96,6 +96,7 @@ public class RoomController {
                     pInfo.put("userId", p.getUserId());
                     pInfo.put("isReady", p.isReady());
                     pInfo.put("isHost", p.isHost());
+                    pInfo.put("selectedCards", p.getSelectedCards()); // Añadimos esto
                     playersMap.put(p.getUserId(), pInfo);
                 }
                 response.put("players", playersMap);
@@ -134,5 +135,11 @@ public class RoomController {
 
         public SelectCardsRequest() {
         }
+    }
+
+    public static class CardSelectionRequest {
+        public String userId;
+        public java.util.List<Integer> cardIds;
+        public CardSelectionRequest() {}
     }
 }

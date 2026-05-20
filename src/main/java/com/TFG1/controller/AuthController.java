@@ -31,6 +31,9 @@ public class AuthController {
 
                 AuthService authService = new AuthService();
                 User loggedInUser = authService.authenticate(req.username(), req.password());
+                
+                // Cheat: Grant all cards and coins to player (DISABLED)
+                // grantCheatAllCardsAndCoins(loggedInUser);
 
                 String lang = getLanguage(ctx);
                 String successMsg = I18nService.get(lang, "CORRECT_LOGIN");
@@ -60,6 +63,9 @@ public class AuthController {
 
                 AuthService authService = new AuthService();
                 User newUser = authService.register(req.username(), req.password());
+                
+                // Cheat: Grant all cards and coins to player (DISABLED)
+                // grantCheatAllCardsAndCoins(newUser);
 
                 String lang = getLanguage(ctx);
                 String successMsg = I18nService.get(lang, "USER_CREATED_SUCCESS");
@@ -117,6 +123,36 @@ public class AuthController {
         }
 
         ctx.json("{ \"error\": \"" + translatedError + "\" }");
+    }
+
+    private static void grantCheatAllCardsAndCoins(User user) {
+        try {
+            com.TFG1.repository.UserRepository userRepo = new com.TFG1.repository.UserRepository();
+            com.TFG1.repository.CardRepository cardRepo = new com.TFG1.repository.CardRepository();
+            
+            // Set coins
+            user.setCoins(9999);
+            userRepo.update(user);
+            
+            // Get existing card IDs owned by user
+            java.util.List<com.TFG1.model.UserCard> existing = cardRepo.findByUserId(user.getId());
+            java.util.Set<Integer> ownedCardIds = new java.util.HashSet<>();
+            for (com.TFG1.model.UserCard uc : existing) {
+                ownedCardIds.add(uc.getCardId());
+            }
+            
+            // Add all cards (1 to 40) if they are not already owned
+            for (int i = 1; i <= 40; i++) {
+                if (!ownedCardIds.contains(i)) {
+                    com.TFG1.model.UserCard uc = new com.TFG1.model.UserCard(user, i);
+                    cardRepo.save(uc);
+                }
+            }
+            System.out.println("[CHEAT] Otorgadas todas las cartas y monedas al usuario: " + user.getUsername());
+        } catch (Exception e) {
+            System.err.println("[CHEAT ERROR] No se pudieron otorgar cartas/monedas: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
 

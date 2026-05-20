@@ -20,7 +20,10 @@ public class GameManager {
     private Player lastBidder;
     private final DiceLogic diceLogic;
     private boolean skipNextTurn = false;
+    private boolean hasPlayedCardThisTurn = false; // Nueva restricción
     private final Random rand = new Random();
+    private int lastRevealedDieValue = -1;
+    private String lastRevealedPlayerId = null;
 
     public GameManager() {
         this.players = new ArrayList<>();
@@ -46,8 +49,10 @@ public class GameManager {
         this.currentBid = null;
         this.lastBidder = null;
         this.skipNextTurn = false;
+        this.hasPlayedCardThisTurn = false; // Reset al empezar ronda
 
         for (Player p : players) {
+            p.setBlinded(false);
             if (!p.isEliminated()) {
                 for (Die die : p.cup()) {
                     die.roll();
@@ -68,6 +73,7 @@ public class GameManager {
             skipNextTurn = false;
             nextTurn();
         }
+        this.hasPlayedCardThisTurn = false; // Reset al pasar el turno a otro
     }
 
     private void ensureValidTurn() {
@@ -111,7 +117,9 @@ public class GameManager {
         }
 
         for (Player p : players) {
-            p.hand().clear();
+            // Si el jugador ya tiene cartas en mano (las que pusimos en START_GAME desde el Lobby), NO las sobreescribimos
+            if (!p.hand().isEmpty()) continue;
+
             if (!allTriunfos.isEmpty())
                 p.hand().add(allTriunfos.get(rand.nextInt(allTriunfos.size())));
             if (!allPalos.isEmpty())
@@ -128,6 +136,9 @@ public class GameManager {
         if (!currentPlayer.getId().equals(playerId))
             return false;
 
+        if (hasPlayedCardThisTurn)
+            return false;
+
         Card cardToPlay = null;
         for (Card c : currentPlayer.hand()) {
             if (c.id() == cardId) {
@@ -138,7 +149,27 @@ public class GameManager {
         if (cardToPlay == null)
             return false;
 
+        // Validar Joker de Oros (Transferencia): no dejar usarlo si todos tienen los mismos dados
+        if (cardToPlay.type() == CardType.JOKER && cardToPlay.suit() == com.TFG1.core.cards.Suit.OROS) {
+            boolean allSame = true;
+            int commonCount = -1;
+            for (Player p : players) {
+                if (!p.isEliminated()) {
+                    if (commonCount == -1) {
+                        commonCount = p.cup().size();
+                    } else if (p.cup().size() != commonCount) {
+                        allSame = false;
+                        break;
+                    }
+                }
+            }
+            if (allSame) {
+                return false;
+            }
+        }
+
         currentPlayer.hand().remove(cardToPlay);
+        hasPlayedCardThisTurn = true; // Marcamos que ya ha usado su carta de este turno
 
         com.TFG1.core.cards.effects.CardEffectStrategy strategy = com.TFG1.core.cards.effects.CardEffectFactory.getStrategy(cardToPlay);
         if (strategy != null) {
@@ -149,7 +180,16 @@ public class GameManager {
             skipNextTurn = true;
         }
 
-        checkGameOver();
+        // Check game over without starting a new round and rerolling all dice
+        int activePlayers = 0;
+        for (Player p : players) {
+            if (!p.isEliminated()) {
+                activePlayers++;
+            }
+        }
+        if (activePlayers <= 1) {
+            this.state = GameState.GAME_OVER;
+        }
 
         return true;
     }
@@ -318,8 +358,22 @@ public class GameManager {
     }
 
     public void revealDie(Player target, Die die) {
-
+        this.lastRevealedDieValue = die.getValue();
+        this.lastRevealedPlayerId = target.getId();
         System.out.println("REVEAL: El jugador " + target.getName() + " tiene un dado con valor " + die.getValue());
+    }
+
+    public int getLastRevealedDieValue() {
+        return lastRevealedDieValue;
+    }
+
+    public String getLastRevealedPlayerId() {
+        return lastRevealedPlayerId;
+    }
+
+    public void clearLastRevealed() {
+        this.lastRevealedDieValue = -1;
+        this.lastRevealedPlayerId = null;
     }
 
     public void markBlindDuelActive() {
