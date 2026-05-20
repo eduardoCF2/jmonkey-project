@@ -93,6 +93,7 @@ public class GameWebSocketController {
                                         Card c = cardRegistry.getCardById(cardId);
                                         if (c != null) {
                                             p.hand().add(c);
+                                            p.getCardsToLoseOnDefeat().add(cardId);
                                         }
                                     }
                                 }
@@ -142,7 +143,7 @@ public class GameWebSocketController {
                             String doubtResult = gm.callDoubt(username);
                             if (doubtResult != null) {
                                 for (Player p : gm.getPlayers()) {
-                                    if (p.isEliminated() && !p.hand().isEmpty()) {
+                                    if (p.isEliminated() && !p.getCardsToLoseOnDefeat().isEmpty()) {
                                         penalizePlayerCards(p, userRepository, cardRepository);
                                     }
                                 }
@@ -189,7 +190,7 @@ public class GameWebSocketController {
                                 boolean success = gm.playCard(username, cardId, targetPlayerId);
                                 if (success) {
                                     for (Player p : gm.getPlayers()) {
-                                        if (p.isEliminated() && !p.hand().isEmpty()) {
+                                        if (p.isEliminated() && !p.getCardsToLoseOnDefeat().isEmpty()) {
                                             penalizePlayerCards(p, userRepository, cardRepository);
                                         }
                                     }
@@ -207,7 +208,18 @@ public class GameWebSocketController {
                                         } else if (playedCard.value() == 11) {
                                             effectMsg += " ¡Intercambio! Ha intercambiado un dado aleatorio con " + (targetPlayerId != null ? targetPlayerId : "un rival") + ".";
                                         } else if (playedCard.value() == 12) {
+                                            int val = gm.getLastRevealedDieValue();
+                                            String targetId = gm.getLastRevealedPlayerId();
                                             effectMsg += " ¡Ojo de Rey! Ha revelado un dado de " + (targetPlayerId != null ? targetPlayerId : "un rival") + ".";
+                                            if (val != -1 && targetId != null) {
+                                                try {
+                                                    WsMessage privateMsg = new WsMessage("CARD_EFFECT", "¡Ojo de Rey! Revelado dado de " + targetId + " con valor [" + val + "].");
+                                                    ctx.send(mapper.writeValueAsString(privateMsg));
+                                                } catch (Exception ex) {
+                                                    ex.printStackTrace();
+                                                }
+                                            }
+                                            gm.clearLastRevealed();
                                         }
                                     } else if (playedCard.type() == com.TFG1.core.cards.CardType.JOKER) {
                                         switch (playedCard.suit()) {
@@ -235,6 +247,10 @@ public class GameWebSocketController {
                                             if (user != null) {
                                                 cardRepository.deleteOneUserCard(user.getId(), cardId);
                                                 System.out.println("[DB] Carta de palo " + cardId + " eliminada para " + username);
+                                                Player pPlay = gm.getPlayerById(username);
+                                                if (pPlay != null) {
+                                                    pPlay.getCardsToLoseOnDefeat().remove(Integer.valueOf(cardId));
+                                                }
                                             }
                                         } catch (Exception e) {
                                             System.err.println("Error al consumir carta en DB: " + e.getMessage());
@@ -430,10 +446,11 @@ public class GameWebSocketController {
         try {
             com.TFG1.model.User user = userRepository.findByUsername(p.getId());
             if (user != null) {
-                for (Card c : p.hand()) {
-                    cardRepository.deleteOneUserCard(user.getId(), c.id());
-                    System.out.println("[DB] Jugador " + p.getId() + " penalizado. Perdió su carta: " + c.name());
+                for (Integer cardId : p.getCardsToLoseOnDefeat()) {
+                    cardRepository.deleteOneUserCard(user.getId(), cardId);
+                    System.out.println("[DB] Jugador " + p.getId() + " penalizado. Perdió su carta ID: " + cardId);
                 }
+                p.getCardsToLoseOnDefeat().clear();
                 p.hand().clear();
             }
         } catch (Exception e) {
